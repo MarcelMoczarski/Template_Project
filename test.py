@@ -4,4 +4,6 @@
 
 # fw.data 
 # print("hi")
- 
+import sys
+
+print(sys.path)
