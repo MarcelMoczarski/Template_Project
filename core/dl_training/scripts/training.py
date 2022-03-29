@@ -30,7 +30,7 @@
 #                            ) 
 # learn.fit(20)
 
-def ugu():
+def main():
     print("hi")
 #calc runtime
 #average runtime
@@ -40,3 +40,4 @@ def ugu():
 #add save best model
 #add tensorboard support
 #add telegramlogger
+#check pytest 

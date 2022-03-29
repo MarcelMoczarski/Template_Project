@@ -1,3 +1,0 @@
-[console_scripts]
-new1 = examples.test_folder.new_file:main
-
