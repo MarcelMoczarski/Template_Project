@@ -1,4 +1,3 @@
-# from dl_framework import data, callbacks, learner, model, loss_functions
 import dl_framework as fw
 from pathlib import Path
 
@@ -30,3 +29,7 @@ learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_1),
                            callbacks
                            ) 
 learn.fit(20)
+
+
+#calc runtime
+#average runtime

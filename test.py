@@ -1,11 +1,4 @@
-# import dl_framework.callbacks as cb
-# import dl_framework as fw
+from time import time
 
 
-# fw.data 
-# print("hi")
-import sys
-
-print(sys.path)
-import dl_framework as fw
-fw.callbacks
+print(time())

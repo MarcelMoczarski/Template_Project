@@ -10,9 +10,11 @@ class Learner():
         self.cbh = cbh
         self.recorder = self.cbh.Monitor_Cb.history
 
+        #helper vars
         self._stop = False
         self._best_model = True
         self.epoch = 0
+        self._start_time = 0
 
     def fit(self, epochs):
         self.cbh.on_train_begin(self, epochs)
