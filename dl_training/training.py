@@ -33,3 +33,7 @@ learn.fit(20)
 
 #calc runtime
 #average runtime
+#toml file
+#add paths in setup for start training
+#add mechanism to safe model to gdrive. with option to resume training
+#add save best model
