@@ -23,7 +23,7 @@ earlystopping = fw.callbacks.EarlyStopping_Cb(monitor="valid_loss", patience=2)
 
 callbacks = fw.callbacks.CallbackHandler([monitor, earlystopping])
 
-learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_1), 
+learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2), 
                            fw.loss_functions.cross_entropy, 
                            train_db,
                            callbacks
