@@ -7,3 +7,5 @@
 import sys
 
 print(sys.path)
+import dl_framework as fw
+fw.callbacks
