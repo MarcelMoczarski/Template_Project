@@ -1,0 +1,4 @@
+[console_scripts]
+devtest = core.dev_tests.scripts.test_script:main
+training = core.dl_training.scripts.training:main
+
