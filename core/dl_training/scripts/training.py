@@ -1,37 +1,34 @@
-# import core.dl_framework as fw
-# from pathlib import Path
+import core.dl_framework as fw
+from pathlib import Path
 
-# mnt_dir = Path("/content")
+mnt_dir = Path("/content")
 
+val_split = 0.2
+batch_size = 64
+num_classes = 10
 
-# val_split = 0.2
-# batch_size = 64
-# num_classes = 10
+x_train, y_train, x_test, y_test = fw.data.get_dataset("torchvision", "MNIST", mnt_dir)
+x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, val_split)
 
-# x_train, y_train, x_test, y_test = fw.data.get_dataset("torchvision", "MNIST", mnt_dir)
-# x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, val_split)
+train_ds = fw.data.Dataset(x_train, y_train)
+valid_ds = fw.data.Dataset(x_valid, y_valid)
+test_ds = fw.data.Dataset(x_test, y_test)
 
-# train_ds = fw.data.Dataset(x_train, y_train)
-# valid_ds = fw.data.Dataset(x_valid, y_valid)
-# test_ds = fw.data.Dataset(x_test, y_test)
+train_dl, valid_dl, test_dl = fw.data.get_dls(train_ds, valid_ds, test_ds, batch_size)
+train_db = fw.data.DataBunch(train_dl, valid_dl, num_classes)
 
-# train_dl, valid_dl, test_dl = fw.data.get_dls(train_ds, valid_ds, test_ds, batch_size)
-# train_db = fw.data.DataBunch(train_dl, valid_dl, num_classes)
+monitor = fw.callbacks.Monitor_Cb(["valid_acc", "valid_loss", "loss"])
+earlystopping = fw.callbacks.EarlyStopping_Cb(monitor="valid_loss", patience=2)
 
-# monitor = fw.callbacks.Monitor_Cb(["valid_acc", "valid_loss", "loss"])
-# earlystopping = fw.callbacks.EarlyStopping_Cb(monitor="valid_loss", patience=2)
+callbacks = fw.callbacks.CallbackHandler([monitor, earlystopping])
 
-# callbacks = fw.callbacks.CallbackHandler([monitor, earlystopping])
+learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2), 
+                           fw.loss_functions.cross_entropy, 
+                           train_db,
+                           callbacks
+                           ) 
+learn.fit(20)
 
-# learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2), 
-#                            fw.loss_functions.cross_entropy, 
-#                            train_db,
-#                            callbacks
-#                            ) 
-# learn.fit(20)
-
-def main():
-    print("hi")
 #calc runtime
 #average runtime
 #toml file
