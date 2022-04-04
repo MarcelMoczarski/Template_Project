@@ -27,9 +27,10 @@ import toml
 #                            callbacks
 #                            ) 
 # learn.fit(20)
-def main()
+def main():
+    print("hi")
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     main()
 
 
