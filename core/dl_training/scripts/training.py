@@ -32,10 +32,10 @@ def main(config_path):
 
 
 
-if __name__ == "__main__":
-    config_path = "/config" 
-    config_path = Path(config_path)
-    main(config_path)
+# if __name__ == "__main__":
+#     config_path = "/config" 
+#     config_path = Path(config_path)
+#     main(config_path)
 
 
 
