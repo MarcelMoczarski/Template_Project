@@ -1,5 +1,8 @@
-#This is a TOML document
+# This is a TOML document
 
 title = "Training configuration"
 
+[mode]
+
 [paths]
+tmp_data_path = "/content"
