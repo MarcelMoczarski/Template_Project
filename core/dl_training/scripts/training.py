@@ -2,6 +2,7 @@ import core.dl_framework as fw
 import click
 import toml
 from pathlib import Path
+import sys
 # val_split = 0.2
 # batch_size = 64
 # num_classes = 10
@@ -27,15 +28,22 @@ from pathlib import Path
 #                            callbacks
 #                            ) 
 # learn.fit(20)
+
+@click.command()
+@click.argument("config_path", default="/content/Template_Project/configs", type=click.Path(exists=True))
+
 def main(config_path):
-    config_file = toml.load(config_path/"default_train_config.toml")
+    
+    config_file = toml.load(Path(config_path)/"default_train_config.toml")
+    print(config_file)
+    # click.echo(sys.path)
+    with open(Path("./data/" + "test.txt"), "w") as file:
+        file.write("hi")
 
-
-
-# if __name__ == "__main__":
-#     config_path = "/config" 
-#     config_path = Path(config_path)
-#     main(config_path)
+if __name__ == "__main__":
+    # config_path = "/config" 
+    # config_path = Path(config_path)
+    main()
 
 
 
