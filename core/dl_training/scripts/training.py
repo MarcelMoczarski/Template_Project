@@ -1,7 +1,7 @@
 import core.dl_framework as fw
 import click
 import toml
-
+#test
 # val_split = 0.2
 # batch_size = 64
 # num_classes = 10
