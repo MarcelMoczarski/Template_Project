@@ -5,4 +5,4 @@ title = "Training configuration"
 [mode]
 
 [paths]
-tmp_data_path = "/content"
+tmp_data_path = "./data"

@@ -1,7 +1,7 @@
 import core.dl_framework as fw
 import click
 import toml
-#test
+from pathlib import Path
 # val_split = 0.2
 # batch_size = 64
 # num_classes = 10
@@ -27,11 +27,15 @@ import toml
 #                            callbacks
 #                            ) 
 # learn.fit(20)
-def main():
-    print("hi")
+def main(config_path):
+    config_file = toml.load(config_path/"default_train_config.toml")
+
+
 
 if __name__ == "__main__":
-    main()
+    config_path = "/config" 
+    config_path = Path(config_path)
+    main(config_path)
 
 
 
