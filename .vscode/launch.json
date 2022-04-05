@@ -8,6 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
+            // "preLaunchTask": "echo",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
