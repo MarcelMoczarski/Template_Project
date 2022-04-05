@@ -4,14 +4,15 @@ from sklearn.model_selection import train_test_split
 
 def get_dataset(source, dataset, save_path):
     if source == "torchvision":
-        if dataset == "MNIST":
-            mnist_trainset = torchvision.datasets.MNIST(save_path, train=True, download=True)
-            mnist_testset = torchvision.datasets.MNIST(save_path, train=False, download=True)
-            x_train, y_train = mnist_trainset.data / 255, mnist_trainset.targets
-            x_test, y_test = mnist_testset.data / 255, mnist_testset.targets
-            x_train = x_train.reshape((len(x_train), -1))
-            x_test = x_test.reshape((len(x_test), -1))
-            return x_train, y_train, x_test, y_test
+        pass
+        # if dataset == "MNIST":
+        #     mnist_trainset = torchvision.datasets.MNIST(save_path, train=True, download=True)
+        #     mnist_testset = torchvision.datasets.MNIST(save_path, train=False, download=True)
+        #     x_train, y_train = mnist_trainset.data / 255, mnist_trainset.targets
+        #     x_test, y_test = mnist_testset.data / 255, mnist_testset.targets
+        #     x_train = x_train.reshape((len(x_train), -1))
+        #     x_test = x_test.reshape((len(x_test), -1))
+        #     return x_train, y_train, x_test, y_test
 
 class Dataset():
     #transforms?

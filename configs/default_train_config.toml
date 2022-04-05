@@ -3,6 +3,19 @@
 title = "Training configuration"
 
 [mode]
+gpu = false
 
 [paths]
-tmp_data_path = "./data"
+tmp_data_path = "./tmp_files"
+
+
+[general]
+num_epochs = 100
+
+[source]
+source = "torchvision"
+set = "MNIST"
+
+[hyperparams]
+batch_size = 64
+lr = 1e-05
