@@ -1,2 +1,7 @@
-import core.dl_framework.data as Data
+# from pathlib import Path
 
+# print(Path(__file__))
+
+import sys
+
+print(sys.path)
