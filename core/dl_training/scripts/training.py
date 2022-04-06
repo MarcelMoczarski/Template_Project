@@ -35,17 +35,16 @@ import sys
 # @click.command()
 # @click.argument("config_path", default="./configs/default_train_config.toml", type=click.Path(exists=True))
 def main(config_path):
-    # setup_config = fw.utils.read_config(toml.load(config_path))
-    # x_train, y_train, x_test, y_test = fw.data.get_dataset(
-    #     setup_config["source"], setup_config["set"], setup_config["tmp_files"])
-    # x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, setup_config["valid_split"])
+    setup_config = fw.utils.read_config(toml.load(config_path))
+    x_train, y_train, x_test, y_test = fw.data.get_dataset(
+        setup_config["source"], setup_config["set"], setup_config["tmp_files"])
+    x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, setup_config["valid_split"])
 
-    # train_ds, valid_ds = fw.data.Dataset(x_train, y_train), fw.data.Dataset(x_valid, y_valid)
-    click.echo("asfsd")
+    train_ds, valid_ds = fw.data.Dataset(x_train, y_train), fw.data.Dataset(x_valid, y_valid)
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
 
 
 # calc runtime
