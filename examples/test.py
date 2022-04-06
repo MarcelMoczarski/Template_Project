@@ -1,7 +1,4 @@
-# from pathlib import Path
+from pathlib import Path
 
-# print(Path(__file__))
-
-import sys
-
-print(sys.path)
+filename = "test"
+print(Path(__file__).resolve().parents[1]/"tmp_files"/filename)
