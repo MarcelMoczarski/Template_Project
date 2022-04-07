@@ -21,5 +21,9 @@ set = "MNIST"
 batch_size = 64
 lr = 1e-05
 
-[callbacks]
+[callbacks.monitor]
 monitor = ["valid_acc", "valid_loss", "loss"]
+
+[callbacks.earlystopping]
+monitor = "valid_loss"
+patience = 1000
