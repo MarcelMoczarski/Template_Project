@@ -19,3 +19,4 @@ set = "MNIST"
 [hyperparams]
 batch_size = 64
 lr = 1e-05
+
