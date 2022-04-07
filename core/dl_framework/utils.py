@@ -1,19 +1,17 @@
 def read_config(config_file):
     setup_config = {}
-
-    setup_config["gpu"] = config_file["mode"]["gpu"]
-
-    setup_config["tmp_files"] = config_file["paths"]["tmp_data_path"]
-
-    setup_config["num_epochs"] = config_file["general"]["num_epochs"]
-    setup_config["valid_split"] = config_file["general"]["valid_split"]
-    setup_config["num_classes"] = config_file["general"]["num_classes"]
-    setup_config["source"] = config_file["source"]["source"]
-    setup_config["set"] = config_file["source"]["set"]
-
-    setup_config["batch_size"] = config_file["hyperparams"]["batch_size"]
-    setup_config["lr"] = config_file["hyperparams"]["lr"]
-
-    setup_config["callback_monitor"] = config_file["callbacks"]["monitor"]
+    # abr_dict = {}
+    for key, value in config_file.items():
+        if key == "title":
+            continue
+        else:
+            for subkey, subval in value.items():
+                if type(subval) != dict:
+                    key_name = f"{key[0]}_{subkey}"
+                    setup_config[key_name] = subval
+                else:
+                    for subsubkey, subsubval in subval.items():
+                        key_name = f"{key[0]}_{subkey[0]}_{subsubkey}"
+                        setup_config[key_name] = subsubval
     return setup_config
-    
+

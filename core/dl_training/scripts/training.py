@@ -37,16 +37,17 @@ import sys
 def main(config_path):
     setup_config = fw.utils.read_config(toml.load(config_path))
     x_train, y_train, x_test, y_test = fw.data.get_dataset(
-        setup_config["source"], setup_config["set"], setup_config["tmp_files"])
-    x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, setup_config["valid_split"])
+        setup_config["s_source"], setup_config["s_set"], setup_config["p_tmp_files_path"])
+    x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, setup_config["g_valid_split"])
 
     train_ds, valid_ds = fw.data.Dataset(x_train, y_train), fw.data.Dataset(x_valid, y_valid)
     test_ds = fw.data.Dataset(x_test, y_test)
 
-    train_dl, valid_dl, test_dl =fw.data.get_dls(train_ds, valid_ds, test_ds, setup_config["batch_size"])
+    train_dl, valid_dl, test_dl =fw.data.get_dls(train_ds, valid_ds, test_ds, setup_config["h_batch_size"])
 
-    train_db = fw.data.DataBunch(train_dl, valid_dl, setup_config["num_classes"])
+    train_db = fw.data.DataBunch(train_dl, valid_dl, setup_config["g_num_classes"])
 
+    
     monitor = fw.callbacks.Monitor_Cb(["valid_acc", "valid_loss", "loss"])
     # earlystopping = fw.callbacks.EarlyStopping_Cb(monitor="valid_loss", patience=1000)
     # callbacks = fw.callbacks.CallbackHandler([monitor, earlystopping])

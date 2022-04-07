@@ -21,8 +21,10 @@ set = "MNIST"
 batch_size = 64
 lr = 1e-05
 
+#call callbacks alwasys like this: callbacks.*
 [callbacks.monitor]
 monitor = ["valid_acc", "valid_loss", "loss"]
+print2console = true
 
 [callbacks.earlystopping]
 monitor = "valid_loss"
