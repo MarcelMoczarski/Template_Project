@@ -21,13 +21,7 @@ class Learner():
         self.cbh.on_train_begin(self, epochs)
 
 # class Learner():
-#     def __init__(self, model, opt, loss_func, data, cbh):
-#         self.model = model
-#         self.opt = opt
-#         self.loss_func = loss_func
-#         self.data = data
-#         self.cbh = cbh
-#         self.recorder = self.cbh.Monitor_Cb.history
+#           self.recorder = self.cbh.Monitor_Cb.history
 
 #         #helper vars
 #         self._stop = False

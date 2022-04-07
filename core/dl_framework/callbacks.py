@@ -4,9 +4,6 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
-class Recorder_Cb():
-    def __init__():
-        pass
 
 class Callback():
     def __init__(): pass
@@ -87,8 +84,11 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_validate_end()
 
+class Recorder_Cb(Callback):
+    def __init__():
+        pass
 
-class Monitor_Cb(Callback):
+class Monitor_Cb(Recorder_Cb):
     def __init__(self, monitor, print2console=True):
         self.monitor = monitor
         self.print2console = print2console
@@ -180,7 +180,7 @@ class Monitor_Cb(Callback):
 #         return self.history # [self.monitor][-1]
 
 
-class EarlyStopping_Cb(Callback):
+class EarlyStopping_Cb(Recorder_Cb):
     def __init__(self, monitor="valid_loss", comp=np.less, patience=1):
         self.monitor = monitor
         self.patience = patience
