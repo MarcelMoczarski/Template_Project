@@ -1,15 +1,19 @@
 from tqdm import tqdm
-import torch 
+import torch
 from core.dl_framework.callbacks import get_callbacks, Recorder_Cb
+from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_trainset
+
 
 class Learner():
     def __init__(self, data, setup_config):
         self.model = setup_config["g_arch"]
         self.opt = setup_config["g_optimizer"]
         self.loss = setup_config["g_loss_func"]
-        
-        if len(data) > 1:
-            self.data = data
+
+        self.bs = setup_config["h_batch_size"]
+
+        self.data = self._get_databunch(data)
+       
 
         if any([c for c in setup_config.keys() if c[:2] == "c_"]):
             self.cbh = get_callbacks(setup_config)
@@ -18,6 +22,16 @@ class Learner():
 
         self.recorder = Recorder_Cb
 
+    def _get_databunch(data, bs):
+        if type(data) != list:
+            data = [data]
+        if len(data) < 2:
+            data = split_trainset(data, bs)
+        # if any(ds for ds in data if type(ds) == Dataset):
+        #     self.data = DataBunch(*get_dls(data[0], data[1], self.bs))
+        # elif any(dl for dl in data if type(dl) == DataLoader):
+        #     self.data = DataBunch(*data, bs)
+        return data
 
 # class Learner():
 #     def __init__(self, model, opt, loss_func, data, cbh):
@@ -54,7 +68,7 @@ class Learner():
 #             self.cbh.on_batch_begin(xb, yb)
 #             self.__one_batch(xb, yb)
 #             self.cbh.on_batch_end()
-            
+
 #     def __one_batch(self, xb, yb):
 #         out = self.model(xb)
 #         loss = self.loss_func(out, yb)

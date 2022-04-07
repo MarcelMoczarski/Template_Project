@@ -69,11 +69,11 @@ class DataBunch():
         return self.valid_dl.dataset
 
 
-def get_dls(train_ds, valid_ds, test_ds, bs):
-    return DataLoader(train_ds, bs), DataLoader(valid_ds, bs), DataLoader(test_ds, bs)
+def get_dls(train_ds, valid_ds, bs):
+    return DataLoader(train_ds, bs), DataLoader(valid_ds, bs)
 
 
-def split_trainset(x_data, y_data, valid_split, stratify=False):
+def split_trainset_raw(x_data, y_data, valid_split, stratify=False):
     if stratify == False:
         train_indices, valid_indices, _, _ = train_test_split(
             range(len(x_data)), y_data, test_size=valid_split)
@@ -82,6 +82,13 @@ def split_trainset(x_data, y_data, valid_split, stratify=False):
             range(len(x_data)), y_data, test_size=valid_split, stratify=y_data)
     x_train, y_train = x_data[train_indices], y_data[train_indices]
     x_valid, y_valid = x_data[valid_indices], y_data[valid_indices]
-    return x_train, y_train, x_valid, y_valid
-
+    return Dataset(x_train, y_train), Dataset(x_valid, y_valid)
     # use of subsets here, to safe  ram, if needed
+
+def split_trainset(data, split_size, stratify=False):
+    data = data[0]
+    if type(data) == Dataset:
+        data = [split_trainset_raw(data[0], data[1], split_size)]
+
+    return data
+        
