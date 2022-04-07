@@ -7,7 +7,7 @@ from datetime import date
 class Recorder_Cb():
     def __init__():
         pass
-    
+
 class Callback():
     def __init__(): pass
 
@@ -238,4 +238,4 @@ def get_callbacks(setup_config):
         for attr, val in cb_list.items():
             setattr(cb, attr, val)
         cbs.append(cb)
-    return CallbackHandler(cbs)
+    return cbs

@@ -1,4 +1,6 @@
-import core.dl_framework as fw
+from core.dl_framework.utils import read_config
+from core.dl_framework.data import get_dataset, Dataset
+from core.dl_framework.learner import Learner
 import click
 import toml
 from pathlib import Path
@@ -16,25 +18,20 @@ import sys
 @click.command()
 @click.argument("config_path", default="./configs/default_train_config.toml", type=click.Path(exists=True))
 def main(config_path):
-    setup_config = fw.utils.read_config(toml.load(config_path))
-    x_train, y_train, x_test, y_test = fw.data.get_dataset(
+    setup_config = read_config(toml.load(config_path))
+    x_train, y_train, x_test, y_test = get_dataset(
         setup_config["s_source"], setup_config["s_set"], setup_config["p_tmp_data_path"])
-    x_train, y_train, x_valid, y_valid = fw.data.split_trainset(x_train, y_train, setup_config["g_valid_split"])
 
-    train_ds, valid_ds = fw.data.Dataset(x_train, y_train), fw.data.Dataset(x_valid, y_valid)
-    test_ds = fw.data.Dataset(x_test, y_test)
+    train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
-    train_dl, valid_dl, test_dl =fw.data.get_dls(train_ds, valid_ds, test_ds, setup_config["h_batch_size"])
+    # train_dl, valid_dl, test_dl =fw.data.get_dls(train_ds, valid_ds, test_ds, setup_config["h_batch_size"])
 
-    train_db = fw.data.DataBunch(train_dl, valid_dl, setup_config["g_num_classes"])
+    # train_db = fw.data.DataBunch(train_dl, valid_dl, setup_config["g_num_classes"])
 
-    callbacks = fw.callbacks.get_callbacks(setup_config)
+    # callbacks = fw.callbacks.get_callbacks(setup_config)
 
     # model = setup
-    learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2),
-                                fw.loss_functions.get_loss,
-                                train_db,
-                                callbacks)
+    learn = Learner(train_ds, setup_config)
     # learn.fit(1000)
 
 if __name__ == "__main__":
