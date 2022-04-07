@@ -4,25 +4,33 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
+
 class Callback():
     def __init__(): pass
+
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
+
     def on_train_end(self): pass
     def on_epoch_begin(self, *args): pass
     def on_epoch_end(self, *args): pass
+
     def on_batch_begin(self, xb, yb):
         self.xb = xb
-        self.yb = yb 
+        self.yb = yb
+
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
+
     def on_loss_end(self, loss):
         self.loss = loss
+
     def on_step_begin(self): pass
     def on_step_end(self): pass
     def on_validate_begin(self): pass
     def on_validate_end(self): pass
+
 
 class CallbackHandler():
     def __init__(self, cbs):
@@ -31,11 +39,11 @@ class CallbackHandler():
             setattr(self, type(cb).__name__, cb)
 
     def on_train_begin(self, learn, epochs):
-        self.learn = learn 
+        self.learn = learn
         self.epochs = epochs
         for cb in self.cbs:
             cb.on_train_begin(learn, self.epochs)
-    
+
     def on_train_end(self):
         for cb in self.cbs:
             cb.on_train_end()
@@ -65,33 +73,34 @@ class CallbackHandler():
     def on_loss_end(self, loss):
         self.loss = loss
         for cb in self.cbs:
-            cb.on_loss_end(loss)  
+            cb.on_loss_end(loss)
 
     def on_validate_begin(self):
         self.learn.model.eval()
         for cb in self.cbs:
             cb.on_validate_begin()
-            
+
     def on_validate_end(self):
         for cb in self.cbs:
             cb.on_validate_end()
-  
+
+
 class Monitor_Cb(Callback):
     def __init__(self, monitor, print2console=True):
-        self.monitor = monitor 
+        self.monitor = monitor
         self.print2console = print2console
         self.batch_vals = {}
         self.epoch_vals = {}
         self.__reset_dict("epoch_vals")
         self.implemented_metrics = {
-                                    "valid_acc": self.__val_acc, 
-                                    "valid_loss": self.__val_loss, 
-                                    "loss": self.__loss
-                                    }
+            "valid_acc": self.__val_acc,
+            "valid_loss": self.__val_loss,
+            "loss": self.__loss
+        }
 
     def on_epoch_begin(self, epoch):
-        self.epoch = epoch 
-        self.__reset_dict("batch_vals") 
+        self.epoch = epoch
+        self.__reset_dict("batch_vals")
 
     def on_epoch_end(self, *args):
         for mon in self.batch_vals:
@@ -104,11 +113,13 @@ class Monitor_Cb(Callback):
         for mon in self.monitor:
             if mon[:5] != "valid":
                 self.implemented_metrics[mon]()
-     
+
     def on_validate_begin(self):
-        empty_string = "validate".rjust(len(f"epoch: {self.epoch} / {self.epochs}"))
+        empty_string = "validate".rjust(
+            len(f"epoch: {self.epoch} / {self.epochs}"))
         with torch.no_grad():
-            pbar = tqdm(self.learn.data.valid_dl, total=len(self.learn.data.valid_dl))
+            pbar = tqdm(self.learn.data.valid_dl,
+                        total=len(self.learn.data.valid_dl))
             for data in pbar:
                 pbar.set_description(empty_string, refresh=False)
                 xb, yb = data
@@ -116,11 +127,13 @@ class Monitor_Cb(Callback):
                 loss = self.learn.loss_func(out, yb)
                 for mon in self.monitor:
                     if mon[:5] == "valid":
-                        self.implemented_metrics[mon](out=out, loss=loss, xb=xb, yb=yb)
+                        self.implemented_metrics[mon](
+                            out=out, loss=loss, xb=xb, yb=yb)
 
     def __val_acc(self, **kwargs):
         _, predicted = torch.max(kwargs["out"].data, 1)
-        correct = (predicted == kwargs["yb"]).sum().item() / self.learn.data.valid_dl.bs
+        correct = (predicted == kwargs["yb"]).sum(
+        ).item() / self.learn.data.valid_dl.bs
         self.batch_vals["valid_acc"].append(correct)
 
     def __val_loss(self, **kwargs):
@@ -139,9 +152,10 @@ class Monitor_Cb(Callback):
 
     def __print_to_console(self):
         print_string = f""
-        if self.epoch == self.epochs: 
+        if self.epoch == self.epochs:
             print_string += "\n"
-        print_string += f"metrics: ".rjust(len(f"epoch: {self.epoch} / {self.epochs}")+2)
+        print_string += f"metrics: ".rjust(
+            len(f"epoch: {self.epoch} / {self.epochs}")+2)
 
         for mon in self.epoch_vals.items():
             print_string += f"{mon[0]}: {mon[1][-1]:.6f},  "
@@ -153,7 +167,7 @@ class Monitor_Cb(Callback):
         l = len(history)
         history.insert(0, column="epoch", value=range(1, l+1))
         return history
-    
+
 # class Tracker_Cb(Callback):
 #     def __init__(self, monitor="valid_loss", comp=np.less):
 #         super().__init__()
@@ -161,6 +175,7 @@ class Monitor_Cb(Callback):
 #         self.comp = comp
 #     def get_monitor_value(self):
 #         return self.history # [self.monitor][-1]
+
 
 class EarlyStopping_Cb(Callback):
     def __init__(self, monitor="valid_loss", comp=np.less, patience=1):
@@ -182,13 +197,14 @@ class EarlyStopping_Cb(Callback):
         if self.wait >= self.patience:
             self.learn._stop = True
 
+
 class SaveBestModel_Cb(Callback):
     def __init__(self, path, monitor="valid_loss", date=date.today(), run=0):
         self.path = path
         self.monitor = monitor
         self.date_time = date
         self.run = run
-    
+
     def on_epoch_end(self, *args):
         minimum = self.learn.recorder[self.monitor][:-1].min()
         last_val = self.learn.recorder[self.monitor].iloc[-1]
@@ -197,4 +213,26 @@ class SaveBestModel_Cb(Callback):
 
 # run_variable which increases with each fit
 # make folder_structure -> date -> check if there is a run folder -> safe best model to run_folder
-#tracker_class that calcs the best value
+# tracker_class that calcs the best value
+
+def get_callbacks(setup_config):
+
+    implemented_cbs = {"m": Monitor_Cb,
+                       "e": EarlyStopping_Cb}
+
+    cb_list = [c for c in setup_config if c[:2] == "c_"]
+    cb_args = {}
+    for i in cb_list:
+        cb = i.split("_")[1:]
+        if cb[0] not in cb_args:
+            cb_args[cb[0]] = {cb[1]: setup_config[i]}
+        else:
+            cb_args[cb[0]][cb[1]] = setup_config[i]
+
+    cbs = []
+    for _cb, cb_list in cb_args.items():
+        cb = implemented_cbs[_cb]
+        for attr, val in cb_list.items():
+            setattr(cb, attr, val)
+        cbs.append(cb)
+    return CallbackHandler(cbs)
