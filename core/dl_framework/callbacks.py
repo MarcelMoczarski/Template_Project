@@ -4,7 +4,10 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
-
+class Recorder_Cb():
+    def __init__():
+        pass
+    
 class Callback():
     def __init__(): pass
 

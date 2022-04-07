@@ -14,6 +14,8 @@ num_classes = 10
 valid_split = 0.2
 loss_func = "cross_entropy"
 optimizer= "adam"
+arch = "Model_2"
+
 [source]
 source = "torchvision"
 set = "MNIST"
