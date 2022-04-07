@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import torch
 from core.dl_framework.callbacks import get_callbacks, Recorder_Cb
-from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_trainset
+from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
 
 
 class Learner():
@@ -9,11 +9,10 @@ class Learner():
         self.model = setup_config["g_arch"]
         self.opt = setup_config["g_optimizer"]
         self.loss = setup_config["g_loss_func"]
-
         self.bs = setup_config["h_batch_size"]
-
-        self.data = self._get_databunch(data)
+        self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
        
+        self._setup_config = setup_config
 
         if any([c for c in setup_config.keys() if c[:2] == "c_"]):
             self.cbh = get_callbacks(setup_config)
@@ -22,15 +21,15 @@ class Learner():
 
         self.recorder = Recorder_Cb
 
-    def _get_databunch(data, bs):
+    def _get_databunch(self, data, bs, split_size):
         if type(data) != list:
             data = [data]
         if len(data) < 2:
-            data = split_trainset(data, bs)
-        # if any(ds for ds in data if type(ds) == Dataset):
-        #     self.data = DataBunch(*get_dls(data[0], data[1], self.bs))
-        # elif any(dl for dl in data if type(dl) == DataLoader):
-        #     self.data = DataBunch(*data, bs)
+            data = split_data(data, split_size)
+        else:
+            if any(dl for dl in data if type(dl) == DataLoader):
+                data = [data[0].dataset, data[1].dataset]
+        data = DataBunch(*get_dls(data[0], data[1], self.bs))
         return data
 
 # class Learner():

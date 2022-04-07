@@ -73,7 +73,7 @@ def get_dls(train_ds, valid_ds, bs):
     return DataLoader(train_ds, bs), DataLoader(valid_ds, bs)
 
 
-def split_trainset_raw(x_data, y_data, valid_split, stratify=False):
+def split_data_raw(x_data, y_data, valid_split, stratify=False):
     if stratify == False:
         train_indices, valid_indices, _, _ = train_test_split(
             range(len(x_data)), y_data, test_size=valid_split)
@@ -85,10 +85,11 @@ def split_trainset_raw(x_data, y_data, valid_split, stratify=False):
     return Dataset(x_train, y_train), Dataset(x_valid, y_valid)
     # use of subsets here, to safe  ram, if needed
 
-def split_trainset(data, split_size, stratify=False):
+def split_data(data, split_size, stratify=False):
     data = data[0]
     if type(data) == Dataset:
-        data = [split_trainset_raw(data[0], data[1], split_size)]
-
+        data = split_data_raw(data.x, data.y, split_size)
+    if type(data) == DataLoader:
+        data = split_data_raw(data.dataset.x, data.dataset.y, split_size)
     return data
         
