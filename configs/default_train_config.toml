@@ -12,7 +12,8 @@ tmp_data_path = "./tmp_files"
 num_epochs = 100
 num_classes = 10
 valid_split = 0.2
-
+loss_func = "cross_entropy"
+optimizer= "adam"
 [source]
 source = "torchvision"
 set = "MNIST"

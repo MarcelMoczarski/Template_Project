@@ -49,10 +49,10 @@ def main(config_path):
 
     callbacks = fw.callbacks.get_callbacks(setup_config)
 
-    # learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2),
-    #                             fw.loss_functions.cross_entropy,
-    #                             train_db,
-    #                             callbacks)
+    learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_2),
+                                fw.loss_functions.get_loss,
+                                train_db,
+                                callbacks)
     # learn.fit(1000)
 
 if __name__ == "__main__":
