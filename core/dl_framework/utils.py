@@ -7,12 +7,13 @@ def read_config(config_file):
 
     setup_config["num_epochs"] = config_file["general"]["num_epochs"]
     setup_config["valid_split"] = config_file["general"]["valid_split"]
-    
+    setup_config["num_classes"] = config_file["general"]["num_classes"]
     setup_config["source"] = config_file["source"]["source"]
     setup_config["set"] = config_file["source"]["set"]
 
     setup_config["batch_size"] = config_file["hyperparams"]["batch_size"]
     setup_config["lr"] = config_file["hyperparams"]["lr"]
 
+    setup_config["callback_monitor"] = config_file["callbacks"]["monitor"]
     return setup_config
     

@@ -10,6 +10,7 @@ tmp_data_path = "./tmp_files"
 
 [general]
 num_epochs = 100
+num_classes = 10
 valid_split = 0.2
 
 [source]
@@ -20,3 +21,5 @@ set = "MNIST"
 batch_size = 64
 lr = 1e-05
 
+[callbacks]
+monitor = ["valid_acc", "valid_loss", "loss"]
