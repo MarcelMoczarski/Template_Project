@@ -54,7 +54,7 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_batch_begin(batch)
 
-    def on_batch_begin(self):
+    def on_batch_end(self):
         for cb in self.cbs:
             cb.on_batch_end()
 
