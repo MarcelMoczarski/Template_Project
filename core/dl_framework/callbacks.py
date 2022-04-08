@@ -73,12 +73,12 @@ class Recorder(Callback):
     # using numpy arrays for summming vals is much faster than lists
     def __init__(self):
         self.epoch_vals = {"epoch": [], "train": [], "valid": []}
-        self.batch_vals = {"train": [], "valid": []}
+        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_out": [], "valid_out": []}
 
     def on_epoch_begin(self, epoch):
         self.epoch_vals["epoch"].append(epoch + 1)
-        self.batch_vals["train"] = []
-        self.batch_vals["valid"] = []
+        self.batch_vals["train_loss"] = []
+        self.batch_vals["valid_loss"] = []
 
     def on_batch_begin(self, batch):
         self.batch = batch
@@ -88,9 +88,12 @@ class Recorder(Callback):
         self.loss = loss
         self.out = out
         if self.learn.model.training:
-            self.batch_vals["train"].append(loss.item())
+            self.batch_vals["train_loss"].append(loss.item())
+            self.batch_vals["train_out"].append(out.data)
         else:
-            self.batch_vals["valid"].append(loss.item())
+            self.batch_vals["valid_loss"].append(loss.item())
+            self.batch_vals["valid_out"].append(out.data)
+
 
     def history(self):
         pass
@@ -130,21 +133,19 @@ class Monitor(Recorder):
             print(mon)
 
     def valid_acc(self):
-        # _, predicted = torch.max(self.out.data, 1)
-        # print(self.learn.data.valid_dl.bs)
-        return 2
-        # correct = (predicted == self.yb).sum().item() / self.learn.data.valid_dl.bs
-        # return correct
+        _, predicted = torch.max(self.out.data, 1)
+        correct = (predicted == self.yb).sum().item() / self.learn.data.valid_dl.bs
+        return correct
 #         _, predicted = torch.max(kwargs["out"].data, 1)
 #         correct = (predicted == kwargs["yb"]).sum(
 #         ).item() / self.learn.data.valid_dl.bs
 #         self.batch_vals["valid_acc"].append(correct)
 
     def valid_loss(self):
-        return sum(self.batch_vals["valid"]) / len(self.batch_vals["valid"])
+        return sum(self.batch_vals["valid_loss"]) / len(self.batch_vals["valid_loss"])
 
-    def loss(self):
-        return sum(self.batch_vals["train"]) / len(self.batch_vals["train"])
+    def train_loss(self):
+        return sum(self.batch_vals["train_loss"]) / len(self.batch_vals["train_loss"])
 
 
 class EarlyStopping(Recorder):
