@@ -24,13 +24,6 @@ def main(config_path):
 
     train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
-    # train_dl, valid_dl, test_dl =fw.data.get_dls(train_ds, valid_ds, test_ds, setup_config["h_batch_size"])
-
-    # train_db = fw.data.DataBunch(train_dl, valid_dl, setup_config["g_num_classes"])
-
-    # callbacks = fw.callbacks.get_callbacks(setup_config)
-
-    # model = setup
     learn = Learner(train_ds, setup_config)
     # learn.fit(1000)
 

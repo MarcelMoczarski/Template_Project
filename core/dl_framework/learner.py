@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import torch
-from core.dl_framework.callbacks import get_callbacks, Recorder_Cb, CallbackHandler
+from core.dl_framework.callbacks import get_callbacks, Recorder, CallbackHandler
 from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
 
 
@@ -12,8 +12,6 @@ class Learner():
         self.bs = setup_config["h_batch_size"]
         self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
         self.cbh = self._get_callbackhandler(setup_config)
-
-        self.recorder = Recorder_Cb
 
         self._setup_config = setup_config
 
@@ -69,9 +67,9 @@ class Learner():
     def _get_callbackhandler(self, setup_config):
         if any([c for c in setup_config.keys() if c[:2] == "c_"]):
             cbh = get_callbacks(setup_config)
-            cbh.append(Recorder_Cb)
+            cbh.append(Recorder)
         else:
-            cbh = [Recorder_Cb]
+            cbh = [Recorder]
         return CallbackHandler(cbh)
 
     def _get_databunch(self, data, bs, split_size):
