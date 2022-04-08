@@ -89,10 +89,10 @@ class Recorder(Callback):
         self.out = out
         if self.learn.model.training:
             self.batch_vals["train_loss"].append(loss.item())
-            self.batch_vals["train_out"].append(out.data)
+            self.batch_vals["train_out"].append(torch.max(out.data, 1))
         else:
             self.batch_vals["valid_loss"].append(loss.item())
-            self.batch_vals["valid_out"].append(out.data)
+            self.batch_vals["valid_out"].append(torch.max(out.data, 1))
 
 
     def history(self):
