@@ -11,7 +11,8 @@ class Callback():
     def on_train_end(self): pass
     def on_epoch_begin(self): pass
     def on_epoch_end(self): pass
-    def on_batch_begin(self): pass
+    def on_batch_begin(self, batch):
+        self.batch = batch
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
     def on_loss_end(self): pass
@@ -32,19 +33,31 @@ class CallbackHandler():
         # self.learn = learn
         # self.train_mode = True
 
+    def on_batch_begin(self, batch):
+        for cb in self.cbs:
+            cb.on_batch_begin(batch)
+
 class Recorder(Callback):
     def __init__(self): pass
 
-class CudaCallback(Callback):
+class CudaCallback(Recorder):
     def __init__(self): pass
 
     def on_train_begin(self, learn):
         self.learn = learn
         if self.learn.gpu:
+            #error message if no gpu available
             learn.model = learn.model.to(learn.device)
-        else:
-            learn.model = learn.model.to("cpu")
 
+    def on_batch_begin(self, batch):
+        self.xb, self.yb = batch[0], batch[1]
+        if self.learn.gpu:
+            self.xb = self.xb.to(self.learn.device)
+            self.yb = self.yb.to(self.learn.device)
+        # else:
+        #     self.xb = self.xb.to("cpu")
+        #     self.yb = self.yb.to("cpu")
+        self.batch = (self.xb, self.yb)
 
 class Monitor(Recorder):
     def __init__(self): pass

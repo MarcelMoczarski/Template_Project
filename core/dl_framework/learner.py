@@ -3,11 +3,12 @@ import torch
 from core.dl_framework.callbacks import get_callbackhandler
 from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
 from core.dl_framework import model
+from core.dl_framework import loss_functions
 
 class Container():
     def __init__(self, data, setup_config):
         # self.opt = setup_config["g_optimizer"]
-        self.loss = setup_config["g_loss_func"]
+        self.loss_func = getattr(loss_functions, setup_config["g_loss_func"])
         self.bs = setup_config["h_batch_size"]
         self.arch = setup_config["g_arch"]
         self.c = setup_config["g_num_classes"]
@@ -50,18 +51,27 @@ class Learner():
 
     def all_batches(self, data): 
         pbar = tqdm(data.train_dl, total=len(data.train_dl))
-        for databatch in pbar:
-            self.one_batch(databatch)
+        for batch in pbar:
+            self.one_batch(batch)
 
-    def one_batch(self, databatch):
-        pass
-        # xb, yb = databk[0].to(self.device), datab[1].to(self.device) 
-        # out = self.learn.model()
-
-        # out = cbh.
+    def one_batch(self, batch):
+        self.cbh.on_batch_begin(batch)
+        xb, yb = self.cbh.CudaCallback.batch
+        # # xb, yb = batch[0].to(self.device), batch[1].to(self.device)
+        out = self.learn.model(xb)
+        loss = self.learn.loss_func(out, yb)
+        loss.backward()
+        self.learn.opt.step()
+        self.learn.opt.zero_grad()
         
 
-    
+    #     def __one_batch(self, xb, yb):
+#         out = self.model(xb)
+#         loss = self.loss_func(out, yb)
+#         self.cbh.on_loss_end(loss)
+#         loss.backward()
+#         self.opt.step()
+#         self.opt.zero_grad()
  
 
 # class Learner():

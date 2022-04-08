@@ -3,7 +3,7 @@
 title = "Training configuration"
 
 [mode]
-gpu = true
+gpu = false
 
 [paths]
 tmp_data_path = "./tmp_files"
