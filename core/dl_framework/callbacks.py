@@ -6,7 +6,8 @@
 
 class Callback():
     def __init__(): pass
-    def on_train_begin(self): pass
+    def on_train_begin(self, learn): 
+        self.learn = learn
     def on_train_end(self): pass
     def on_epoch_begin(self): pass
     def on_epoch_end(self): pass
@@ -22,11 +23,19 @@ class Callback():
 class CallbackHandler():
     def __init__(self, cbs):
         self.cbs = cbs
+        for cb in cbs:
+            setattr(self, type(cb).__name__, cb)
+    def on_train_begin(self, learn):
+        self.learn = learn
+        # self.train_mode = True
 
 class Recorder(Callback):
     def __init__(self): pass
 
-class Monitor_Cb(Recorder):
+class CudaCallback(Callback):
+    def __init__(self): pass
+
+class Monitor(Recorder):
     def __init__(Recorder): pass
 
 class EarlyStopping(Recorder):
@@ -247,24 +256,24 @@ class EarlyStopping(Recorder):
 # # make folder_structure -> date -> check if there is a run folder -> safe best model to run_folder
 # # tracker_class that calcs the best value
 
-# def get_callbacks(setup_config):
+def get_callbacks(setup_config):
 
-#     implemented_cbs = {"m": Monitor_Cb,
-#                        "e": EarlyStopping_Cb}
+    implemented_cbs = {"m": Monitor,
+                       "e": EarlyStopping}
 
-#     cb_list = [c for c in setup_config if c[:2] == "c_"]
-#     cb_args = {}
-#     for i in cb_list:
-#         cb = i.split("_")[1:]
-#         if cb[0] not in cb_args:
-#             cb_args[cb[0]] = {cb[1]: setup_config[i]}
-#         else:
-#             cb_args[cb[0]][cb[1]] = setup_config[i]
+    cb_list = [c for c in setup_config if c[:2] == "c_"]
+    cb_args = {}
+    for i in cb_list:
+        cb = i.split("_")[1:]
+        if cb[0] not in cb_args:
+            cb_args[cb[0]] = {cb[1]: setup_config[i]}
+        else:
+            cb_args[cb[0]][cb[1]] = setup_config[i]
 
-#     cbs = []
-#     for _cb, cb_list in cb_args.items():
-#         cb = implemented_cbs[_cb]
-#         for attr, val in cb_list.items():
-#             setattr(cb, attr, val)
-#         cbs.append(cb)
-#     return cbs
+    cbs = []
+    for _cb, cb_list in cb_args.items():
+        cb = implemented_cbs[_cb]
+        for attr, val in cb_list.items():
+            setattr(cb, attr, val)
+        cbs.append(cb)
+    return cbs

@@ -1,22 +1,58 @@
 from tqdm import tqdm
 import torch
-from core.dl_framework.callbacks import get_callbacks, Recorder, CallbackHandler
+from core.dl_framework.callbacks import get_callbacks, Recorder, CallbackHandler, CudaCallback
 from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
 
-
-class Learner():
+class Learn_Container():
     def __init__(self, data, setup_config):
         self.model = setup_config["g_arch"]
         self.opt = setup_config["g_optimizer"]
         self.loss = setup_config["g_loss_func"]
         self.bs = setup_config["h_batch_size"]
         self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
-        self.cbh = self._get_callbackhandler(setup_config)
 
         self._setup_config = setup_config
 
+    def _get_callbackhandler(self, setup_config):
+        if any([c for c in setup_config.keys() if c[:2] == "c_"]):
+            cbh = get_callbacks(setup_config)
+            cbh.extend([Recorder, CudaCallback])
+        else:
+            cbh = [Recorder, CudaCallback()]
+        return CallbackHandler(cbh)
+
+    def _get_databunch(self, data, bs, split_size):
+        if type(data) != list:
+            data = [data]
+        if len(data) < 2:
+            data = split_data(data, split_size)
+        else:
+            if any(dl for dl in data if type(dl) == DataLoader):
+                data = [data[0].dataset, data[1].dataset]
+        data = DataBunch(*get_dls(data[0], data[1], self.bs))
+        return data
+
+
+class Learner():
+    def __init__(self, data, setup_config):
+        self.learn = Learn_Container(data, setup_config)
+        self.cbh = self._get_callbackhandler(setup_config)
+
+        
     def fit(self, epochs):
-        self.cbh.on_train_begin(self, epochs)
+        self.cbh.on_train_begin(self)
+        for epoch in range(epochs):
+            self.all_batches()
+
+    def all_batches(self): 
+        pbar = tqdm(self.learn.data.train_dl, total=len(self.learn.data.train_dl))
+        for datab in pbar:
+            self.one_batch(datab)
+
+    def one_batch(self, datab):
+        xb, yb = datab
+        # out = cbh.
+
 
 # class Learner():
 #           self.recorder = self.cbh.Monitor_Cb.history
@@ -64,24 +100,7 @@ class Learner():
 #         }
 #         path = path / "checkpoint_model.pt"
 #         torch.save(state, path)
-    def _get_callbackhandler(self, setup_config):
-        if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-            cbh = get_callbacks(setup_config)
-            cbh.append(Recorder)
-        else:
-            cbh = [Recorder]
-        return CallbackHandler(cbh)
 
-    def _get_databunch(self, data, bs, split_size):
-        if type(data) != list:
-            data = [data]
-        if len(data) < 2:
-            data = split_data(data, split_size)
-        else:
-            if any(dl for dl in data if type(dl) == DataLoader):
-                data = [data[0].dataset, data[1].dataset]
-        data = DataBunch(*get_dls(data[0], data[1], self.bs))
-        return data
 
 # class Learner():
 #     def __init__(self, model, opt, loss_func, data, cbh):
