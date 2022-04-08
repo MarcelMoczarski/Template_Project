@@ -9,17 +9,18 @@ class Callback():
     def on_train_begin(self, learn):
         self.learn = learn
     def on_train_end(self): pass
-    def on_epoch_begin(self): pass
+    def on_epoch_begin(self, *args): pass
     def on_epoch_end(self): pass
     def on_batch_begin(self, batch):
         self.batch = batch
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
-    def on_loss_end(self): pass
+    def on_loss_end(self,loss): 
+        self.loss = loss
     def on_step_begin(self): pass
     def on_step_end(self): pass
     def on_validate_begin(self): pass
-    def on_validate_end(self): pass
+    def on_validate_end(self, *args): pass
 
 class CallbackHandler():
     def __init__(self, cbs):
@@ -28,19 +29,66 @@ class CallbackHandler():
             setattr(self, type(cb).__name__, cb)
 
     def on_train_begin(self, learn): 
+        self.learn = learn
         for cb in self.cbs: 
-            cb.on_train_begin(learn)
+            cb.on_train_begin(self.learn)
         # self.learn = learn
         # self.train_mode = True
+    def on_epoch_begin(self, epoch):
+        self.learn.model.train()
+        for cb in self.cbs:
+            cb.on_epoch_begin(epoch)
 
+    def on_epoch_end(self):
+        for cb in self.cbs:
+            cb.on_epoch_end()
+    
     def on_batch_begin(self, batch):
         for cb in self.cbs:
             cb.on_batch_begin(batch)
 
-class Recorder(Callback):
-    def __init__(self): pass
+    def on_loss_end(self, loss):
+        for cb in self.cbs:
+            cb.on_loss_end(loss)
+        return self.learn.model.training
 
-class CudaCallback(Recorder):
+    def on_validate_begin(self):
+        self.learn.model.eval()
+        for cb in self.cbs:
+            cb.on_validate_begin()
+
+    def on_validate_end(self, loss):
+        for cb in self.cbs:
+            cb.on_validate_end(loss)
+
+class Recorder(Callback):
+    ## using numpy arrays for summming vals is much faster than lists
+    def __init__(self): 
+        self.epoch_vals = {"epoch": [], "train":[], "valid": []}
+        self.batch_vals = {"train":[], "valid": []}
+
+
+    def on_epoch_begin(self, epoch):
+        self.epoch_vals["epoch"].append(epoch + 1)
+        self.batch_vals["train"] = []
+        self.batch_vals["valid"] = []
+
+    def on_loss_end(self, loss):
+        if self.learn.model.training:
+            self.batch_vals["train"].append(loss.item())
+        else:
+            self.batch_vals["valid"].append(loss.item())
+
+    
+    def on_epoch_end(self):
+        self.epoch_vals["train"].append(sum(self.batch_vals["train"]) / len(self.batch_vals["train"]))
+        self.epoch_vals["valid"].append(sum(self.batch_vals["valid"]) / len(self.batch_vals["valid"]))
+    
+    def on_validate_end(self, loss):
+        self.batch_vals["valid"].append(loss.item())
+
+
+class CudaCallback(Callback):
     def __init__(self): pass
 
     def on_train_begin(self, learn):
@@ -54,17 +102,16 @@ class CudaCallback(Recorder):
         if self.learn.gpu:
             self.xb = self.xb.to(self.learn.device)
             self.yb = self.yb.to(self.learn.device)
-        # else:
-        #     self.xb = self.xb.to("cpu")
-        #     self.yb = self.yb.to("cpu")
         self.batch = (self.xb, self.yb)
 
 class Monitor(Recorder):
-    def __init__(self): pass
+    def __init__(self): 
+        super().__init__()
     # def on_train_begin(self):
     #     pass
 class EarlyStopping(Recorder):
-    def __init__(self): pass
+    def __init__(self): 
+        super().__init__()
         
 
 
@@ -305,8 +352,8 @@ def get_callbacks(setup_config):
 
 def get_callbackhandler(setup_config):
     if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-        cbs = get_callbacks(setup_config)
-        cbs.extend([Recorder(), CudaCallback()])
+        cbs = [Recorder(), CudaCallback()]
+        cbs.extend(get_callbacks(setup_config))
     else:
         cbs = [Recorder(), CudaCallback()]
     return CallbackHandler(cbs)

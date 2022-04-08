@@ -46,20 +46,28 @@ class Learner():
     def fit(self, epochs):
         self.cbh.on_train_begin(self.learn)
         for epoch in range(epochs):
-            self.all_batches(self.learn.data)
-        
+            self.cbh.on_epoch_begin(epoch)
+            self.all_batches(self.learn.data.train_dl)
+
+            self.cbh.on_validate_begin()
+            with torch.no_grad():
+                self.all_batches(self.learn.data.valid_dl)
+
+            self.cbh.on_epoch_end()
 
     def all_batches(self, data): 
-        pbar = tqdm(data.train_dl, total=len(data.train_dl))
+        pbar = tqdm(data, total=len(data))
         for batch in pbar:
             self.one_batch(batch)
+
+
 
     def one_batch(self, batch):
         self.cbh.on_batch_begin(batch)
         xb, yb = self.cbh.CudaCallback.batch
-        # # xb, yb = batch[0].to(self.device), batch[1].to(self.device)
         out = self.learn.model(xb)
         loss = self.learn.loss_func(out, yb)
+        if not self.cbh.on_loss_end(loss): return
         loss.backward()
         self.learn.opt.step()
         self.learn.opt.zero_grad()
