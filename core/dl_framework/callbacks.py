@@ -54,6 +54,10 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_batch_begin(batch)
 
+    def on_batch_begin(self):
+        for cb in self.cbs:
+            cb.on_batch_end()
+
     def on_loss_end(self, loss, out, yb):
         for cb in self.cbs:
             cb.on_loss_end(loss, out, yb)
@@ -73,7 +77,7 @@ class Recorder(Callback):
     # using numpy arrays for summming vals is much faster than lists
     def __init__(self):
         self.epoch_vals = {"epoch": [], "train": [], "valid": []}
-        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_out": [], "valid_out": []}
+        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
 
     def on_epoch_begin(self, epoch):
         self.epoch_vals["epoch"].append(epoch + 1)
@@ -89,10 +93,10 @@ class Recorder(Callback):
         self.out = out
         if self.learn.model.training:
             self.batch_vals["train_loss"].append(loss.item())
-            self.batch_vals["train_out"].append(torch.max(out.data, 1))
+            # self.batch_vals["train_out"].append(torch.max(out.data, 1)[1])
         else:
             self.batch_vals["valid_loss"].append(loss.item())
-            self.batch_vals["valid_out"].append(torch.max(out.data, 1))
+            # self.batch_vals["valid_out"].append(torch.max(out.data, 1)[1])
 
 
     def history(self):
@@ -126,16 +130,20 @@ class Monitor(Recorder):
         for mon in self.monitor:
             self.history[mon] = []
 
+    def on_batch_end(self):
+        _, batch_pred = torch.max(self.out.data, 1)
+        batch_correct = (batch_pred == self.yb).sum().item() / len(self.yb)
+        if self.learn.model.training:
+            self.batch_vals["train_pred"].append(batch_correct)
+        else:
+            self.batch_vals["valid_pred"].append(batch_correct)
+
     def on_epoch_end(self):
         for mon in self.monitor:
-            print(mon)
             self.history[mon].append(getattr(self, mon)())
-            print(mon)
 
     def valid_acc(self):
-        _, predicted = torch.max(self.out.data, 1)
-        correct = (predicted == self.yb).sum().item() / self.learn.data.valid_dl.bs
-        return correct
+        return sum(self.batch_vals["valid_pred"]) / len(self.batch_vals["valid_pred"])
 #         _, predicted = torch.max(kwargs["out"].data, 1)
 #         correct = (predicted == kwargs["yb"]).sum(
 #         ).item() / self.learn.data.valid_dl.bs

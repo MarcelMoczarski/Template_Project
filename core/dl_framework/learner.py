@@ -59,7 +59,7 @@ class Learner():
         pbar = tqdm(data, total=len(data))
         for batch in pbar:
             self.one_batch(batch)
-
+            self.cbh.on_batch_end()
 
 
     def one_batch(self, batch):
