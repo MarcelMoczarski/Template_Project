@@ -67,7 +67,7 @@ class Learner():
         xb, yb = self.cbh.CudaCallback.batch
         out = self.learn.model(xb)
         loss = self.learn.loss_func(out, yb)
-        if not self.cbh.on_loss_end(loss): return
+        if not self.cbh.on_loss_end(loss, out, yb): return
         loss.backward()
         self.learn.opt.step()
         self.learn.opt.zero_grad()

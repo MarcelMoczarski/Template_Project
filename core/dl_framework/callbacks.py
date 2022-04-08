@@ -1,4 +1,4 @@
-# import torch
+import torch
 # from tqdm import tqdm
 # import numpy as np
 # import pandas as pd
@@ -6,21 +6,27 @@
 
 class Callback():
     def __init__(): pass
+
     def on_train_begin(self, learn):
         self.learn = learn
+
     def on_train_end(self): pass
     def on_epoch_begin(self, *args): pass
     def on_epoch_end(self): pass
-    def on_batch_begin(self, batch):
-        self.batch = batch
+
+    def on_batch_begin(self): pass
+
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
-    def on_loss_end(self,loss): 
+
+    def on_loss_end(self, loss, out, yb):
         self.loss = loss
+
     def on_step_begin(self): pass
     def on_step_end(self): pass
     def on_validate_begin(self): pass
     def on_validate_end(self, *args): pass
+
 
 class CallbackHandler():
     def __init__(self, cbs):
@@ -28,12 +34,13 @@ class CallbackHandler():
         for cb in self.cbs:
             setattr(self, type(cb).__name__, cb)
 
-    def on_train_begin(self, learn): 
+    def on_train_begin(self, learn):
         self.learn = learn
-        for cb in self.cbs: 
+        for cb in self.cbs:
             cb.on_train_begin(self.learn)
         # self.learn = learn
         # self.train_mode = True
+
     def on_epoch_begin(self, epoch):
         self.learn.model.train()
         for cb in self.cbs:
@@ -42,14 +49,14 @@ class CallbackHandler():
     def on_epoch_end(self):
         for cb in self.cbs:
             cb.on_epoch_end()
-    
+
     def on_batch_begin(self, batch):
         for cb in self.cbs:
             cb.on_batch_begin(batch)
 
-    def on_loss_end(self, loss):
+    def on_loss_end(self, loss, out, yb):
         for cb in self.cbs:
-            cb.on_loss_end(loss)
+            cb.on_loss_end(loss, out, yb)
         return self.learn.model.training
 
     def on_validate_begin(self):
@@ -61,31 +68,32 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_validate_end(loss)
 
-class Recorder(Callback):
-    ## using numpy arrays for summming vals is much faster than lists
-    def __init__(self): 
-        self.epoch_vals = {"epoch": [], "train":[], "valid": []}
-        self.batch_vals = {"train":[], "valid": []}
 
+class Recorder(Callback):
+    # using numpy arrays for summming vals is much faster than lists
+    def __init__(self):
+        self.epoch_vals = {"epoch": [], "train": [], "valid": []}
+        self.batch_vals = {"train": [], "valid": []}
 
     def on_epoch_begin(self, epoch):
         self.epoch_vals["epoch"].append(epoch + 1)
         self.batch_vals["train"] = []
         self.batch_vals["valid"] = []
 
-    def on_loss_end(self, loss):
+    def on_batch_begin(self, batch):
+        self.batch = batch
+
+    def on_loss_end(self, loss, out, yb):
+        self.yb = yb
+        self.loss = loss
+        self.out = out
         if self.learn.model.training:
             self.batch_vals["train"].append(loss.item())
         else:
             self.batch_vals["valid"].append(loss.item())
 
-    
-    def on_epoch_end(self):
-        self.epoch_vals["train"].append(sum(self.batch_vals["train"]) / len(self.batch_vals["train"]))
-        self.epoch_vals["valid"].append(sum(self.batch_vals["valid"]) / len(self.batch_vals["valid"]))
-    
-    def on_validate_end(self, loss):
-        self.batch_vals["valid"].append(loss.item())
+    def history(self):
+        pass
 
 
 class CudaCallback(Callback):
@@ -94,7 +102,7 @@ class CudaCallback(Callback):
     def on_train_begin(self, learn):
         self.learn = learn
         if self.learn.gpu:
-            #error message if no gpu available
+            # error message if no gpu available
             learn.model = learn.model.to(learn.device)
 
     def on_batch_begin(self, batch):
@@ -104,15 +112,44 @@ class CudaCallback(Callback):
             self.yb = self.yb.to(self.learn.device)
         self.batch = (self.xb, self.yb)
 
+
 class Monitor(Recorder):
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
-    # def on_train_begin(self):
-    #     pass
+        self.history = {}
+
+    def on_train_begin(self, learn):
+        self.learn = learn
+        for mon in self.monitor:
+            self.history[mon] = []
+
+    def on_epoch_end(self):
+        for mon in self.monitor:
+            print(mon)
+            self.history[mon].append(getattr(self, mon)())
+            print(mon)
+
+    def valid_acc(self):
+        # _, predicted = torch.max(self.out.data, 1)
+        # print(self.learn.data.valid_dl.bs)
+        return 2
+        # correct = (predicted == self.yb).sum().item() / self.learn.data.valid_dl.bs
+        # return correct
+#         _, predicted = torch.max(kwargs["out"].data, 1)
+#         correct = (predicted == kwargs["yb"]).sum(
+#         ).item() / self.learn.data.valid_dl.bs
+#         self.batch_vals["valid_acc"].append(correct)
+
+    def valid_loss(self):
+        return sum(self.batch_vals["valid"]) / len(self.batch_vals["valid"])
+
+    def loss(self):
+        return sum(self.batch_vals["train"]) / len(self.batch_vals["train"])
+
+
 class EarlyStopping(Recorder):
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
-        
 
 
 # class Callback():
@@ -344,11 +381,13 @@ def get_callbacks(setup_config):
 
     cbs = []
     for _cb, cb_list in cb_args.items():
-        cb = implemented_cbs[_cb] #importent, that classes get instantiated here 
+        # importent, that classes get instantiated here
+        cb = implemented_cbs[_cb]
         for attr, val in cb_list.items():
             setattr(cb, attr, val)
         cbs.append(cb)
     return cbs
+
 
 def get_callbackhandler(setup_config):
     if any([c for c in setup_config.keys() if c[:2] == "c_"]):
