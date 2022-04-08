@@ -6,7 +6,7 @@
 
 class Callback():
     def __init__(): pass
-    def on_train_begin(self, learn): 
+    def on_train_begin(self, learn):
         self.learn = learn
     def on_train_end(self): pass
     def on_epoch_begin(self): pass
@@ -23,10 +23,13 @@ class Callback():
 class CallbackHandler():
     def __init__(self, cbs):
         self.cbs = cbs
-        for cb in cbs:
+        for cb in self.cbs:
             setattr(self, type(cb).__name__, cb)
-    def on_train_begin(self, learn):
-        self.learn = learn
+
+    def on_train_begin(self, learn): 
+        for cb in self.cbs: 
+            cb.on_train_begin(learn)
+        # self.learn = learn
         # self.train_mode = True
 
 class Recorder(Callback):
@@ -35,11 +38,21 @@ class Recorder(Callback):
 class CudaCallback(Callback):
     def __init__(self): pass
 
-class Monitor(Recorder):
-    def __init__(Recorder): pass
+    def on_train_begin(self, learn):
+        self.learn = learn
+        if self.learn.gpu:
+            learn.model = learn.model.to(learn.device)
+        else:
+            learn.model = learn.model.to("cpu")
 
+
+class Monitor(Recorder):
+    def __init__(self): pass
+    # def on_train_begin(self):
+    #     pass
 class EarlyStopping(Recorder):
     def __init__(self): pass
+        
 
 
 # class Callback():
@@ -257,9 +270,8 @@ class EarlyStopping(Recorder):
 # # tracker_class that calcs the best value
 
 def get_callbacks(setup_config):
-
-    implemented_cbs = {"m": Monitor,
-                       "e": EarlyStopping}
+    implemented_cbs = {"m": Monitor(),
+                       "e": EarlyStopping()}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
     cb_args = {}
@@ -272,8 +284,16 @@ def get_callbacks(setup_config):
 
     cbs = []
     for _cb, cb_list in cb_args.items():
-        cb = implemented_cbs[_cb]
+        cb = implemented_cbs[_cb] #importent, that classes get instantiated here 
         for attr, val in cb_list.items():
             setattr(cb, attr, val)
         cbs.append(cb)
     return cbs
+
+def get_callbackhandler(setup_config):
+    if any([c for c in setup_config.keys() if c[:2] == "c_"]):
+        cbs = get_callbacks(setup_config)
+        cbs.extend([Recorder(), CudaCallback()])
+    else:
+        cbs = [Recorder(), CudaCallback()]
+    return CallbackHandler(cbs)

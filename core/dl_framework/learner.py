@@ -1,25 +1,23 @@
 from tqdm import tqdm
 import torch
-from core.dl_framework.callbacks import get_callbacks, Recorder, CallbackHandler, CudaCallback
+from core.dl_framework.callbacks import get_callbackhandler
 from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
+from core.dl_framework import model
 
-class Learn_Container():
+class Container():
     def __init__(self, data, setup_config):
-        self.model = setup_config["g_arch"]
-        self.opt = setup_config["g_optimizer"]
+        # self.opt = setup_config["g_optimizer"]
         self.loss = setup_config["g_loss_func"]
         self.bs = setup_config["h_batch_size"]
+        self.arch = setup_config["g_arch"]
+        self.c = setup_config["g_num_classes"]
+        self.device = torch.device("cuda" if torch.cuda.is_available() else cpu)
+        self.lr = setup_config["h_lr"]
+        self.gpu = setup_config["m_gpu"]
         self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
+        self.model, self.opt = self._get_model(setup_config)
+        # self._setup_config = setup_config
 
-        self._setup_config = setup_config
-
-    def _get_callbackhandler(self, setup_config):
-        if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-            cbh = get_callbacks(setup_config)
-            cbh.extend([Recorder, CudaCallback])
-        else:
-            cbh = [Recorder, CudaCallback()]
-        return CallbackHandler(cbh)
 
     def _get_databunch(self, data, bs, split_size):
         if type(data) != list:
@@ -29,34 +27,45 @@ class Learn_Container():
         else:
             if any(dl for dl in data if type(dl) == DataLoader):
                 data = [data[0].dataset, data[1].dataset]
-        data = DataBunch(*get_dls(data[0], data[1], self.bs))
+        data = DataBunch(*get_dls(data[0], data[1], self.bs), self.c)
         return data
 
+    def _get_model(self, setup_config):
+        input_shape = self.data.train_ds.x.shape[1]
+        net = getattr(model, self.arch)(input_shape, 10)
+        return net, torch.optim.Adam(net.parameters(), lr = self.lr)
+        
 
 class Learner():
     def __init__(self, data, setup_config):
-        self.learn = Learn_Container(data, setup_config)
-        self.cbh = self._get_callbackhandler(setup_config)
+        self.learn = Container(data, setup_config)
+        self.cbh = get_callbackhandler(setup_config)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else cpu)
 
-        
     def fit(self, epochs):
-        self.cbh.on_train_begin(self)
+        self.cbh.on_train_begin(self.learn)
         for epoch in range(epochs):
-            self.all_batches()
+            self.all_batches(self.learn.data)
+        
 
-    def all_batches(self): 
-        pbar = tqdm(self.learn.data.train_dl, total=len(self.learn.data.train_dl))
-        for datab in pbar:
-            self.one_batch(datab)
+    def all_batches(self, data): 
+        pbar = tqdm(data.train_dl, total=len(data.train_dl))
+        for databatch in pbar:
+            self.one_batch(databatch)
 
-    def one_batch(self, datab):
-        xb, yb = datab
+    def one_batch(self, databatch):
+        pass
+        # xb, yb = databk[0].to(self.device), datab[1].to(self.device) 
+        # out = self.learn.model()
+
         # out = cbh.
+        
 
+    
+ 
 
 # class Learner():
 #           self.recorder = self.cbh.Monitor_Cb.history
-
 #         #helper vars
 #         self._stop = False
 #         self._best_model = True

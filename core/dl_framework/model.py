@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class Model_1(nn.Module):
-    def __init__(self, n_in, nh, n_out):
+    def __init__(self, n_in, n_out, nh=50):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(n_in, nh),
@@ -15,9 +15,8 @@ class Model_1(nn.Module):
 
 
 class Model_2(nn.Module):
-    def __init__(self, n_in, nh, n_out):
+    def __init__(self, n_in, n_out, nh=512):
         super().__init__()
-        nh = 512
         self.model = nn.Sequential(
             nn.Linear(n_in, 2048),
             nn.ReLU(),
@@ -38,6 +37,9 @@ class Model_2(nn.Module):
         )
     def forward(self, x):
         return self.model(x)
+
+def get_model(data, setup_config):
+    m = data.train_ds.x.shape[1]
 
 def get_model(data, model_class, lr=0.5, nh=50, optim=torch.optim.SGD):
     m = data.train_ds.x.shape[1]
