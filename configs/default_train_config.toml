@@ -27,7 +27,8 @@ lr = 1e-05
 #call callbacks alwasys like this: callbacks.*
 [callbacks.monitor]
 monitor = ["valid_acc", "valid_loss", "train_loss"]
-print2console = true
+verbose = true
+
 
 [callbacks.earlystopping]
 monitor = "valid_loss"
