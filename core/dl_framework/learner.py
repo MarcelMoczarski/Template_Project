@@ -60,7 +60,7 @@ class Learner():
         for batch in pbar:
             self.one_batch(batch)
             self.cbh.on_batch_end()
-
+        pbar.set_description(f"self.learn.history")
 
     def one_batch(self, batch):
         self.cbh.on_batch_begin(batch)
