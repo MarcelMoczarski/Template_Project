@@ -12,7 +12,7 @@ class Container():
         self.bs = setup_config["h_batch_size"]
         self.arch = setup_config["g_arch"]
         self.c = setup_config["g_num_classes"]
-        self.device = torch.device("cuda" if torch.cuda.is_available() else cpu)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.lr = setup_config["h_lr"]
         self.gpu = setup_config["m_gpu"]
         self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
@@ -41,10 +41,10 @@ class Learner():
     def __init__(self, data, setup_config):
         self.learn = Container(data, setup_config)
         self.cbh = get_callbackhandler(setup_config)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else cpu)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def fit(self, epochs):
-        self.cbh.on_train_begin(self.learn)
+        self.cbh.on_train_begin(self.learn, epochs)
         for epoch in range(epochs):
             self.cbh.on_epoch_begin(epoch)
             self.all_batches(self.learn.data.train_dl)
@@ -72,7 +72,7 @@ class Learner():
         self.learn.opt.step()
         self.learn.opt.zero_grad()
         
-
+        
     #     def __one_batch(self, xb, yb):
 #         out = self.model(xb)
 #         loss = self.loss_func(out, yb)

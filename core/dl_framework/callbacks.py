@@ -1,13 +1,14 @@
 import torch
 # from tqdm import tqdm
-# import numpy as np
+import numpy as np
 # import pandas as pd
 # from datetime import date
 
 class Callback():
     def __init__(): pass
-    def on_train_begin(self, learn):
+    def on_train_begin(self, learn, epochs):
         self.learn = learn
+        self.epochs
     def on_train_end(self): pass
     def on_epoch_begin(self, *args): pass
     def on_epoch_end(self): pass
@@ -28,10 +29,10 @@ class CallbackHandler():
         for cb in self.cbs:
             setattr(self, type(cb).__name__, cb)
 
-    def on_train_begin(self, learn):
+    def on_train_begin(self, learn, epochs):
         self.learn = learn
         for cb in self.cbs:
-            cb.on_train_begin(self.learn)
+            cb.on_train_begin(self.learn, epochs)
         # self.train_mode = True
 
     def on_epoch_begin(self, epoch):
@@ -67,31 +68,44 @@ class CallbackHandler():
 
 class Recorder(Callback):
     # using numpy arrays for summming vals is much faster than lists
-    def __init__(self):
-        self.epoch_vals = {"epoch": [], "train": [], "valid": []}
-        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
+    def __init__(self): pass
+  
+    def on_train_begin(self, learn, epochs):
+        self.learn = learn
+        self.epochs = epochs
+        # self.epoch_vals = {"epoch": np.zeros(epochs), "train": np.zeros(epochs), "valid": np.zeros(epochs)}
+        self.batch_vals = {"train_loss": np.zeros(epochs), "valid_loss": np.zeros(epochs), "train_pred": np.zeros(epochs), "valid_pred": np.zeros(epochs)}
+
 
     def on_epoch_begin(self, epoch):
-        self.epoch_vals["epoch"].append(epoch + 1)
-        self.batch_vals["train_loss"] = []
-        self.batch_vals["valid_loss"] = []
-
+        self.epoch = epoch
+        # self.epoch_vals["epoch"][epoch] = epoch + 1
+        self.batch_vals["train_loss"] = np.zeros(self.epochs)
+        self.batch_vals["valid_loss"] = np.zeros(self.epochs)
+        # self.epoch_vals["epoch"].append(epoch + 1)
+        # self.batch_vals["train_loss"] = []
+        # self.batch_vals["valid_loss"] = []
+        
     def on_batch_begin(self, batch):
         self.batch = batch
-
     def on_loss_end(self, loss, out, yb):
         self.yb = yb
         self.loss = loss
         self.out = out
         if self.learn.model.training:
-            self.batch_vals["train_loss"].append(loss.item())
+            self.batch_vals["train_loss"][self.epoch] = loss.item()
+            # self.batch_vals["train_loss"].append(loss.item())
         else:
-            self.batch_vals["valid_loss"].append(loss.item())
+            self.batch_vals["valid_loss"][self.epoch] = loss.item()
+            # self.batch_vals["valid_loss"].append(loss.item())
+    #     self.best_value = 
+
+    # def _best_value(self):
 
 class CudaCallback(Callback):
     def __init__(self): pass
 
-    def on_train_begin(self, learn):
+    def on_train_begin(self, learn, *args):
         self.learn = learn
         if self.learn.gpu:
             # error message if no gpu available
@@ -108,26 +122,29 @@ class CudaCallback(Callback):
 class Monitor(Recorder):
     def __init__(self):
         super().__init__()
-        self.history = {}
+        self.history = {"epochs": []}
 
 
-    def on_train_begin(self, learn):
+    def on_train_begin(self, learn, epochs):
         self.learn = learn
+        self.epochs = epochs
+        self.batch_vals = {"train_loss": np.zeros(epochs), "valid_loss": np.zeros(epochs), "train_pred": np.zeros(epochs), "valid_pred": np.zeros(epochs)}
         for mon in self.monitor:
             self.history[mon] = []
+        
 
     def on_batch_end(self):
         _, batch_pred = torch.max(self.out.data, 1)
         batch_correct = (batch_pred == self.yb).sum().item() / len(self.yb)
         if self.learn.model.training:
-            self.batch_vals["train_pred"].append(batch_correct)
+            self.batch_vals["train_pred"][self.epoch] = batch_correct
         else:
-            self.batch_vals["valid_pred"].append(batch_correct)
+            self.batch_vals["valid_pred"][self.epoch] = batch_correct
 
     def on_epoch_end(self):
         for mon in self.monitor:
             self.history[mon].append(getattr(self, mon)())
-
+        self.history["epochs"].append(int(self.epoch + 1))
         if self.verbose == True:
             self._print_console()
 
@@ -141,16 +158,26 @@ class Monitor(Recorder):
         
     def train_loss(self):
         return sum(self.batch_vals["train_loss"]) / len(self.batch_vals["train_loss"])
+    
 
-    # def _print_console(self):
-    #     out_string = f""
-    #     out_string += "{self.history['epoch']}"
+    def _print_console(self):
+        out_string = f""
+        out_string += f"epoch: {int(self.epoch)+1}/{self.epochs}\t"
+        for key, val in self.history.items():
+            if key != "epochs":
+                out_string += f"{key}: {val[-1]:.4f}\t"
+        print(out_string)
+
 
 class EarlyStopping(Recorder):
     def __init__(self):
         super().__init__()
-# here function which calcs best val
+        self.monitor = "train_loss"
+        self.patience = 20
 
+        # def on_epoch_end(self, ):
+
+# here function which calcs best val
 
 
 #     def on_train_begin(self, learn, epochs):
