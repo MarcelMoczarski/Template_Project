@@ -68,36 +68,36 @@ class CallbackHandler():
 
 class Recorder(Callback):
     # using numpy arrays for summming vals is much faster than lists
-    def __init__(self): pass
-  
+    def __init__(self): pass 
+
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
-        # self.epoch_vals = {"epoch": np.zeros(epochs), "train": np.zeros(epochs), "valid": np.zeros(epochs)}
         self.batch_vals = {"train_loss": np.zeros(epochs), "valid_loss": np.zeros(epochs), "train_pred": np.zeros(epochs), "valid_pred": np.zeros(epochs)}
 
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        # self.epoch_vals["epoch"][epoch] = epoch + 1
-        self.batch_vals["train_loss"] = np.zeros(self.epochs)
-        self.batch_vals["valid_loss"] = np.zeros(self.epochs)
-        # self.epoch_vals["epoch"].append(epoch + 1)
-        # self.batch_vals["train_loss"] = []
-        # self.batch_vals["valid_loss"] = []
-        
+        self.counter = 0
+    
+        # self.batch_vals["train_loss"] = np.zeros(self.epochs)
+        # self.batch_vals["valid_loss"] = np.zeros(self.epochs)
+        # self.batch_vals["valid_acc"] = np.zeros(self.epochs)
+        self.batch_vals = {"train_loss": np.zeros(self.learn.bs), "valid_loss": np.zeros(self.learn.bs), "train_pred": np.zeros(self.learn.bs), "valid_pred": np.zeros(self.learn.bs)}
+
+
     def on_batch_begin(self, batch):
         self.batch = batch
+
     def on_loss_end(self, loss, out, yb):
         self.yb = yb
         self.loss = loss
         self.out = out
         if self.learn.model.training:
-            self.batch_vals["train_loss"][self.epoch] = loss.item()
-            # self.batch_vals["train_loss"].append(loss.item())
+            self.batch_vals["train_loss"][self.counter] = loss.item()
         else:
-            self.batch_vals["valid_loss"][self.epoch] = loss.item()
-            # self.batch_vals["valid_loss"].append(loss.item())
+            self.batch_vals["valid_loss"][self.counter] = loss.item()
+        self.counter += 1
     #     self.best_value = 
 
     # def _best_value(self):
@@ -128,7 +128,7 @@ class Monitor(Recorder):
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
-        self.batch_vals = {"train_loss": np.zeros(epochs), "valid_loss": np.zeros(epochs), "train_pred": np.zeros(epochs), "valid_pred": np.zeros(epochs)}
+        self.batch_vals = {"train_loss": np.zeros(self.learn.bs), "valid_loss": np.zeros(self.learn.bs), "train_pred": np.zeros(self.learn.bs), "valid_pred": np.zeros(self.learn.bs)}
         for mon in self.monitor:
             self.history[mon] = []
         
@@ -140,7 +140,7 @@ class Monitor(Recorder):
             self.batch_vals["train_pred"][self.epoch] = batch_correct
         else:
             self.batch_vals["valid_pred"][self.epoch] = batch_correct
-
+        
     def on_epoch_end(self):
         for mon in self.monitor:
             self.history[mon].append(getattr(self, mon)())
