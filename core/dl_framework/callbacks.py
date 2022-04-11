@@ -185,9 +185,11 @@ class EarlyStopping(Recorder):
             if self.tmp_history:
                 if self.comp(self.best_value, self.learn.history[self.monitor][-1]):
                     self.counter += 1
+                    print("new asdasdt")
                 else:
                     self.counter = 0
                     self.best_value = self.learn.history[self.monitor][-1]
+                    print("new best")
                 if self.counter == self.patience:
                     self.learn.do_stop = True
             

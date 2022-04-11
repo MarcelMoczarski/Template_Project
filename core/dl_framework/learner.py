@@ -59,11 +59,11 @@ class Learner():
             self.cbh.on_epoch_end()
 
     def all_batches(self, data): 
-        pbar = tqdm(data, total=len(data))
-        for batch in pbar:
+        # pbar = tqdm(data, total=len(data))
+        for batch in data:
             self.one_batch(batch)
             self.cbh.on_batch_end()
-        pbar.set_description(f"self.learn.history")
+        # pbar.set_description(f"self.learn.history")
 
     def one_batch(self, batch):
         self.cbh.on_batch_begin(batch)

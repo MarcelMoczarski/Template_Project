@@ -25,7 +25,7 @@ def main(config_path):
     train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
     learn = Learner(train_ds, setup_config)
-    # learn.fit(1000)
+    learn.fit(1000)
 
 if __name__ == "__main__":
     main()
