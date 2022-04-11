@@ -73,18 +73,12 @@ class Recorder(Callback):
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
-        self.batch_vals = {"train_loss": np.zeros(epochs), "valid_loss": np.zeros(epochs), "train_pred": np.zeros(epochs), "valid_pred": np.zeros(epochs)}
+        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
 
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        self.counter = 0
-    
-        # self.batch_vals["train_loss"] = np.zeros(self.epochs)
-        # self.batch_vals["valid_loss"] = np.zeros(self.epochs)
-        # self.batch_vals["valid_acc"] = np.zeros(self.epochs)
-        self.batch_vals = {"train_loss": np.zeros(self.learn.bs), "valid_loss": np.zeros(self.learn.bs), "train_pred": np.zeros(self.learn.bs), "valid_pred": np.zeros(self.learn.bs)}
-
+        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
 
     def on_batch_begin(self, batch):
         self.batch = batch
@@ -94,10 +88,9 @@ class Recorder(Callback):
         self.loss = loss
         self.out = out
         if self.learn.model.training:
-            self.batch_vals["train_loss"][self.counter] = loss.item()
+            self.batch_vals["train_loss"].append(loss.item())
         else:
-            self.batch_vals["valid_loss"][self.counter] = loss.item()
-        self.counter += 1
+            self.batch_vals["valid_loss"].append(loss.item())
     #     self.best_value = 
 
     # def _best_value(self):
@@ -123,12 +116,13 @@ class Monitor(Recorder):
     def __init__(self):
         super().__init__()
         self.history = {"epochs": []}
-
+        self.best_values = {}
 
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
-        self.batch_vals = {"train_loss": np.zeros(self.learn.bs), "valid_loss": np.zeros(self.learn.bs), "train_pred": np.zeros(self.learn.bs), "valid_pred": np.zeros(self.learn.bs)}
+
+        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
         for mon in self.monitor:
             self.history[mon] = []
         
@@ -137,18 +131,19 @@ class Monitor(Recorder):
         _, batch_pred = torch.max(self.out.data, 1)
         batch_correct = (batch_pred == self.yb).sum().item() / len(self.yb)
         if self.learn.model.training:
-            self.batch_vals["train_pred"][self.epoch] = batch_correct
+            self.batch_vals["train_pred"].append(batch_correct)
         else:
-            self.batch_vals["valid_pred"][self.epoch] = batch_correct
+            self.batch_vals["valid_pred"].append(batch_correct)
         
     def on_epoch_end(self):
         for mon in self.monitor:
             self.history[mon].append(getattr(self, mon)())
+            self.best_values[mon] = max(self.history[mon])
         self.history["epochs"].append(int(self.epoch + 1))
         if self.verbose == True:
             self._print_console()
-
         setattr(self.learn, "history", self.history)
+
 
     def valid_acc(self):
         return sum(self.batch_vals["valid_pred"]) / len(self.batch_vals["valid_pred"])
@@ -162,11 +157,11 @@ class Monitor(Recorder):
 
     def _print_console(self):
         out_string = f""
-        out_string += f"epoch: {int(self.epoch)+1}/{self.epochs}\t"
+        out_string += f"epoch: {int(self.epoch)+1}/{self.epochs}\t["
         for key, val in self.history.items():
             if key != "epochs":
                 out_string += f"{key}: {val[-1]:.4f}\t"
-        print(out_string)
+        print(out_string[:-1] + "]")
 
 
 class EarlyStopping(Recorder):
@@ -174,6 +169,28 @@ class EarlyStopping(Recorder):
         super().__init__()
         self.monitor = "train_loss"
         self.patience = 20
+        self.counter = 0
+        self.tmp_history = {}
+
+        def on_train_begin(self, learn, *args):
+            self.learn = learn
+            if "loss" in self.monitor:
+                self.comp = np.less
+                self.best_val = np.inf
+            if "acc" in self.monitor:
+                self.comp = np.greater
+                self.best_val = -np.inf
+
+        def on_epoch_begin(self, *args):
+            if self.tmp_history:
+                if self.comp(self.best_value, self.learn.history[self.monitor][-1]):
+                    self.counter += 1
+                else:
+                    self.counter = 0
+                    self.best_value = self.learn.history[self.monitor][-1]
+                if self.counter == self.patience:
+                    self.learn.do_stop = True
+            
 
         # def on_epoch_end(self, ):
 

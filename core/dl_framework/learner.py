@@ -17,6 +17,8 @@ class Container():
         self.gpu = setup_config["m_gpu"]
         self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
         self.model, self.opt = self._get_model(setup_config)
+
+        self.do_stop = False
         # self._setup_config = setup_config
 
 
@@ -47,6 +49,7 @@ class Learner():
         self.cbh.on_train_begin(self.learn, epochs)
         for epoch in range(epochs):
             self.cbh.on_epoch_begin(epoch)
+            if self.learn.do_stop: break 
             self.all_batches(self.learn.data.train_dl)
 
             self.cbh.on_validate_begin()

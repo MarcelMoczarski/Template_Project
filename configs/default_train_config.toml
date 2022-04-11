@@ -14,7 +14,7 @@ num_classes = 10
 valid_split = 0.2
 loss_func = "cross_entropy"
 optimizer= "adam"
-arch = "Model_2"
+arch = "Model_1"
 
 [source]
 source = "torchvision"
@@ -32,4 +32,4 @@ verbose = true
 
 [callbacks.earlystopping]
 monitor = "valid_loss"
-patience = 1000
+patience = 1
