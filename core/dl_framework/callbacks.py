@@ -211,19 +211,18 @@ class EarlyStopping(TrackValues):
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        if epoch > 0:
+        if epoch > 1:
             diff = np.abs(self.best_val - self.track_best_vals[self.monitor][1])
-            print(self.best_val, self.track_best_vals[self.monitor][1])
-            print(self.comp(self.best_val, self.track_best_vals[self.monitor][1]))
             if self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
                 self.counter += 1
                 print("not best-----------------------", self.counter)
             else:
-                print(diff)
                 if diff > self.delta:
                     self.counter = 0
                     self.best_val = self.track_best_vals[self.monitor][1]
                     print("new best:", self.monitor,  self.best_val)
+                else:
+                    self.counter += 1
             print(self.counter)
             if self.counter == self.patience:
                 print(self.counter, self.patience, diff)
