@@ -92,4 +92,16 @@ def split_data(data, split_size, stratify=False):
     if type(data) == DataLoader:
         data = split_data_raw(data.dataset.x, data.dataset.y, split_size)
     return data
+
+def get_databunch(data, bs, split_size, c):
+    if type(data) != list:
+        data = [data]
+    if len(data) < 2:
+        data = split_data(data, split_size)
+    else:
+        if any(dl for dl in data if type(dl) == DataLoader):
+            data = [data[0].dataset, data[1].dataset]
+    data = DataBunch(*get_dls(data[0], data[1], bs), c)
+    return data
+
         

@@ -50,10 +50,9 @@ class Model_2(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-def get_model(data, setup_config):
-    m = data.train_ds.x.shape[1]
 
-def get_model(data, model_class, lr=0.5, nh=50, optim=torch.optim.SGD):
-    m = data.train_ds.x.shape[1]
-    model = model_class(m, nh, data.c)
-    return model, optim(model.parameters(), lr=lr)
+def get_model(data, arch, lr, c, opt):
+    input_shape = data.train_ds.x.shape[1]
+    net = globals()[arch](input_shape, c)
+    optim = getattr(torch.optim, opt)
+    return net, optim(net.parameters(), lr = lr)

@@ -6,15 +6,6 @@ import toml
 from pathlib import Path
 import sys
 
-
-# learn = fw.learner.Learner(*fw.model.get_model(train_db, fw.model.Model_1),
-#                            fw.loss_functions.cross_entropy,
-#                            train_db,
-#                            callbacks
-#                            )
-# learn.fit(1000)
-
-
 @click.command()
 @click.argument("config_path", default="./configs/default_train_config.toml", type=click.Path(exists=True))
 def main(config_path):

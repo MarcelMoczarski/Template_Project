@@ -1,13 +1,13 @@
 from tqdm import tqdm
 import torch
 from core.dl_framework.callbacks import get_callbackhandler
-from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data
-from core.dl_framework import model
+from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data, get_databunch
+from core.dl_framework.model import get_model
 from core.dl_framework import loss_functions
 
 class Container():
     def __init__(self, data, setup_config):
-        # self.opt = setup_config["g_optimizer"]
+        self.opt = setup_config["g_optimizer"]
         self.loss_func = getattr(loss_functions, setup_config["g_loss_func"])
         self.bs = setup_config["h_batch_size"]
         self.arch = setup_config["g_arch"]
@@ -15,28 +15,11 @@ class Container():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.lr = setup_config["h_lr"]
         self.gpu = setup_config["m_gpu"]
-        self.data = self._get_databunch(data, self.bs, setup_config["g_valid_split"])
-        self.model, self.opt = self._get_model(setup_config)
+        self.data = get_databunch(data, self.bs, setup_config["g_valid_split"], self.c)
+        self.model, self.opt = get_model(self.data, self.arch, self.lr, self.c, self.opt)
 
         self.do_stop = False
         # self._setup_config = setup_config
-
-
-    def _get_databunch(self, data, bs, split_size):
-        if type(data) != list:
-            data = [data]
-        if len(data) < 2:
-            data = split_data(data, split_size)
-        else:
-            if any(dl for dl in data if type(dl) == DataLoader):
-                data = [data[0].dataset, data[1].dataset]
-        data = DataBunch(*get_dls(data[0], data[1], self.bs), self.c)
-        return data
-
-    def _get_model(self, setup_config):
-        input_shape = self.data.train_ds.x.shape[1]
-        net = getattr(model, self.arch)(input_shape, 10)
-        return net, torch.optim.Adam(net.parameters(), lr = self.lr)
         
 
 class Learner():
@@ -59,8 +42,8 @@ class Learner():
             self.cbh.on_epoch_end()
 
     def all_batches(self, data): 
-        # pbar = tqdm(data, total=len(data))
-        for batch in data:
+        pbar = tqdm(data, total=len(data))
+        for batch in pbar:
             self.one_batch(batch)
             self.cbh.on_batch_end()
         # pbar.set_description(f"self.learn.history")
