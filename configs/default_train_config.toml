@@ -29,7 +29,12 @@ lr = 1e-05
 monitor = ["valid_acc", "valid_loss", "train_loss"]
 verbose = true
 
-
 [callbacks.earlystopping]
 monitor = "valid_loss"
 patience = 1
+
+[callbacks.ModelCheckPoint]
+ckp_path = "/content/gdrive/MyDrive/Marcel_Moczarski/Data_Science/Google_Services/Local_Drive_Storage/Conda_Envs/Template_Project"
+save_best_model = true
+save_best_history = true
+reset_run = false

@@ -11,7 +11,7 @@ import sys
 def main(config_path):
     setup_config = read_config(toml.load(config_path))
     x_train, y_train, x_test, y_test = get_dataset(
-        setup_config["s_source"], setup_config["s_set"], setup_config["p_tmp_data_path"])
+        setup_config["s_source"], setup_config["s_set"], setup_config["p_tmp_data_path"], CNN=True)
 
     train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
@@ -31,3 +31,9 @@ if __name__ == "__main__":
 # add tensorboard support
 # add telegramlogger
 # check pytest
+# best model checkpoint
+# earlystopping / w delta param
+# tensorflow
+# transferlearning
+# gridsearch
+# model arch via blocks

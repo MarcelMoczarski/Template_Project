@@ -106,7 +106,7 @@ class CudaCallback(Callback):
 
     def on_batch_begin(self, batch):
         self.xb, self.yb = batch[0], batch[1]
-        self.xb = self.xb.unsqueeze(1)
+        self.xb = self.xb.unsqueeze(1) # uncomment when CNN
         if self.learn.gpu:
             self.xb = self.xb.to(self.learn.device)
             self.yb = self.yb.to(self.learn.device)
@@ -173,28 +173,28 @@ class EarlyStopping(Recorder):
         self.counter = 0
         self.tmp_history = {}
 
-        def on_train_begin(self, learn, *args):
-            self.learn = learn
-            if "loss" in self.monitor:
-                self.comp = np.less
-                self.best_val = np.inf
-            if "acc" in self.monitor:
-                self.comp = np.greater
-                self.best_val = -np.inf
+    def on_train_begin(self, learn, *args):
+        self.learn = learn
+        if "loss" in self.monitor:
+            self.comp = np.less
+            self.best_val = np.inf
+        if "acc" in self.monitor:
+            self.comp = np.greater
+            self.best_val = -np.inf
 
-        def on_epoch_begin(self, *args):
-            if self.tmp_history:
-                if self.comp(self.best_value, self.learn.history[self.monitor][-1]):
-                    self.counter += 1
-                    print("new asdasdt")
-                else:
-                    self.counter = 0
-                    self.best_value = self.learn.history[self.monitor][-1]
-                    print("new best")
-                if self.counter == self.patience:
-                    self.learn.do_stop = True
-            
-
+    def on_epoch_end(self, *args):
+        # if epoch > 0:
+        if self.comp(self.best_val, self.learn.history_raw[self.monitor][-1]):
+            self.counter += 1
+            print("not best-----------------------", self.counter)
+        else:
+            self.counter = 0
+            self.best_val = self.learn.history_raw[self.monitor][-1]
+            print("new best:", self.monitor,  self.best_val)
+        if self.counter == self.patience:
+            print(self.counter, self.patience)
+            self.learn.do_stop = True
+        
         # def on_epoch_end(self, ):
 
 # here function which calcs best val
