@@ -3,15 +3,18 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-def get_dataset(source, dataset, save_path):
+def get_dataset(source, dataset, save_path, CNN=False):
     if source == "torchvision":
         dataset = getattr(torchvision.datasets, dataset)
         train_set = dataset(save_path, train=True, download=True)
         test_set = dataset(save_path, train=False, download=True)
         x_train, y_train = train_set.data / 255, train_set.targets
         x_test, y_test = test_set.data / 255, test_set.targets
-        x_train = x_train.reshape((len(x_train), -1))
-        x_test = x_test.reshape((len(x_test), -1))
+
+        if not CNN:
+            x_train = x_train.reshape((len(x_train), -1))
+            x_test = x_test.reshape((len(x_test), -1))
+            
         return x_train, y_train, x_test, y_test
 
 
@@ -26,6 +29,8 @@ class Dataset():
         return len(self.x)
 
     def __getitem__(self, i):
+        if self.transform:
+            self.x = self.transform(x)
         return self.x[i], self.y[i]
 
 

@@ -1,4 +1,5 @@
 from tqdm import tqdm
+import pandas as pd
 import torch
 from core.dl_framework.callbacks import get_callbackhandler
 from core.dl_framework.data import get_dls, DataBunch, Dataset, DataLoader, split_data, get_databunch
@@ -57,7 +58,10 @@ class Learner():
         loss.backward()
         self.learn.opt.step()
         self.learn.opt.zero_grad()
-        
+    
+    @property
+    def history(self):
+        return pd.DataFrame(self.learn.history_raw).set_index("epochs")
         
     #     def __one_batch(self, xb, yb):
 #         out = self.model(xb)

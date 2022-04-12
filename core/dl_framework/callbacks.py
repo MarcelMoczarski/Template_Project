@@ -106,6 +106,7 @@ class CudaCallback(Callback):
 
     def on_batch_begin(self, batch):
         self.xb, self.yb = batch[0], batch[1]
+        self.xb = self.xb.unsqueeze(1)
         if self.learn.gpu:
             self.xb = self.xb.to(self.learn.device)
             self.yb = self.yb.to(self.learn.device)
@@ -139,10 +140,10 @@ class Monitor(Recorder):
         for mon in self.monitor:
             self.history[mon].append(getattr(self, mon)())
             self.best_values[mon] = max(self.history[mon])
-        self.history["epochs"].append(int(self.epoch + 1))
+        self.history["epochs"].append(int(self.epoch+1))
         if self.verbose == True:
             self._print_console()
-        setattr(self.learn, "history", self.history)
+        setattr(self.learn, "history_raw", self.history)
 
 
     def valid_acc(self):

@@ -1,8 +1,62 @@
 import torch
 from torch import nn
 
+
+class Model_CNN(nn.Module):
+    def __init__(self, n_in, n_out, nh=16):
+        super(Model_CNN, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=1,
+                out_channels=nh,
+                kernel_size=5,
+                stride=1,
+                padding=2
+                    ),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2), #halves img dim
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=nh, 
+                out_channels=2*nh, 
+                kernel_size=5,
+                stride=1,
+                padding=2
+                ),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2) #halves img dim
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=2*nh, 
+                out_channels=2*2*nh, 
+                kernel_size=5,
+                stride=1,
+                padding=2
+                ),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2) #halves img dim
+        )
+        self.fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(576, n_out)
+        )
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        out = self.fc(x)
+        return out
+
+
+
 class Model_1(nn.Module):
-    def __init__(self, n_in, n_out, nh=50):
+    def __init__(self, n_in, n_out, nh=8):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(n_in, nh),
@@ -30,7 +84,11 @@ class Model_2(nn.Module):
     def __init__(self, n_in, n_out, nh=512):
         super().__init__()
         self.model = nn.Sequential(
-            nn.Linear(n_in, 2048),
+            nn.Linear(n_in, 8192),
+            nn.ReLU(),
+            nn.Linear(8192, 4096),
+            nn.ReLU(),
+            nn.Linear(4096, 2048),
             nn.ReLU(),
             nn.Linear(2048, 1024),
             nn.ReLU(),
