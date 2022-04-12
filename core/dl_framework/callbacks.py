@@ -12,7 +12,7 @@ class Callback():
     def on_train_end(self): pass
     def on_epoch_begin(self, *args): pass
     def on_epoch_end(self): pass
-    def on_batch_begin(self): pass
+    def on_batch_begin(self, *args): pass
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
     def on_loss_end(self, loss, out, yb):
@@ -91,6 +91,7 @@ class Recorder(Callback):
             self.batch_vals["train_loss"].append(loss.item())
         else:
             self.batch_vals["valid_loss"].append(loss.item())
+        
     #     self.best_value = 
 
     # def _best_value(self):
@@ -165,13 +166,39 @@ class Monitor(Recorder):
         print(out_string[:-1] + "]")
 
 
-class EarlyStopping(Recorder):
+class TrackValues(Callback):
+    def __init__(self):
+        self.track_best_vals = {}
+
+    def on_epoch_end(self):
+        for monitor, values in self.learn.history_raw.items():
+            if ("loss" in monitor) and (self.epoch == 0):
+                self.track_best_vals[monitor] = [np.less, np.inf]
+            if ("loss" in monitor) and (self.epoch > 0):
+                comp = self.track_best_vals[monitor][0]
+                best_val = self.track_best_vals[monitor][1]
+                new_val = self.learn.history_raw[monitor][-1]
+                if comp(new_val, best_val):
+                    self.track_best_vals[monitor][1] = new_val
+            if ("acc" in monitor) and (self.epoch == 0):
+                self.track_best_vals[monitor] = [np.greater, -np.inf]
+            if ("acc" in monitor) and (self.epoch > 0):
+                comp = self.track_best_vals[monitor][0]
+                best_val = self.track_best_vals[monitor][1]
+                new_val = self.learn.history_raw[monitor][-1]
+                if comp(new_val, best_val):
+                    self.track_best_vals[monitor][1] = new_val
+
+
+
+class EarlyStopping(TrackValues):
     def __init__(self):
         super().__init__()
         self.monitor = "train_loss"
         self.patience = 20
         self.counter = 0
         self.tmp_history = {}
+        self.delta = 1e-1
 
     def on_train_begin(self, learn, *args):
         self.learn = learn
@@ -182,23 +209,31 @@ class EarlyStopping(Recorder):
             self.comp = np.greater
             self.best_val = -np.inf
 
-    def on_epoch_end(self, *args):
-        # if epoch > 0:
-        if self.comp(self.best_val, self.learn.history_raw[self.monitor][-1]):
-            self.counter += 1
-            print("not best-----------------------", self.counter)
-        else:
-            self.counter = 0
-            self.best_val = self.learn.history_raw[self.monitor][-1]
-            print("new best:", self.monitor,  self.best_val)
-        if self.counter == self.patience:
-            print(self.counter, self.patience)
-            self.learn.do_stop = True
-        
-        # def on_epoch_end(self, ):
+    def on_epoch_begin(self, epoch):
+        self.epoch = epoch
+        if epoch > 0:
+            diff = np.abs(self.best_val - self.track_best_vals[self.monitor][1])
+            print(self.best_val, self.track_best_vals[self.monitor][1])
+            print(self.comp(self.best_val, self.track_best_vals[self.monitor][1]))
+            if self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
+                self.counter += 1
+                print("not best-----------------------", self.counter)
+            else:
+                print(diff)
+                if diff > self.delta:
+                    self.counter = 0
+                    self.best_val = self.track_best_vals[self.monitor][1]
+                    print("new best:", self.monitor,  self.best_val)
+            print(self.counter)
+            if self.counter == self.patience:
+                print(self.counter, self.patience, diff)
+                self.learn.do_stop = True
 
+        
 # here function which calcs best val
 
+class Checkpoints(Recorder):
+    def __init__(self): pass
 
 #     def on_train_begin(self, learn, epochs):
 #         self.learn = learn
@@ -291,7 +326,8 @@ class EarlyStopping(Recorder):
 
 def get_callbacks(setup_config):
     implemented_cbs = {"m": Monitor(),
-                       "e": EarlyStopping()}
+                       "e": EarlyStopping(),
+                       "c": Checkpoints()}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
     cb_args = {}
