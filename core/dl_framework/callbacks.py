@@ -1,22 +1,29 @@
 import torch
 from pathlib import Path
 import numpy as np
-# import pandas as pd
+from datetime import datetime
+import pandas as pd
 # from datetime import date
+
 
 class Callback():
     def __init__(): pass
+
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs
+
     def on_train_end(self): pass
-    def on_epoch_begin(self, *args): pass
+    def on_epoch_begin(self, epoch, *args):
+        self.epoch = epoch
     def on_epoch_end(self): pass
     def on_batch_begin(self, *args): pass
     def on_batch_end(self): pass
     def on_loss_begin(self): pass
+
     def on_loss_end(self, loss, out, yb):
         self.loss = loss
+
     def on_step_begin(self): pass
     def on_step_end(self): pass
     def on_validate_begin(self): pass
@@ -66,19 +73,21 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_validate_end(loss)
 
+
 class Recorder(Callback):
     # using numpy arrays for summming vals is much faster than lists
-    def __init__(self): pass 
+    def __init__(self): pass
 
     def on_train_begin(self, learn, epochs):
         self.learn = learn
         self.epochs = epochs
-        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
-
+        self.batch_vals = {"train_loss": [], "valid_loss": [],
+                           "train_pred": [], "valid_pred": []}
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
+        self.batch_vals = {"train_loss": [], "valid_loss": [],
+                           "train_pred": [], "valid_pred": []}
 
     def on_batch_begin(self, batch):
         self.batch = batch
@@ -91,10 +100,11 @@ class Recorder(Callback):
             self.batch_vals["train_loss"].append(loss.item())
         else:
             self.batch_vals["valid_loss"].append(loss.item())
-        
-    #     self.best_value = 
+
+    #     self.best_value =
 
     # def _best_value(self):
+
 
 class CudaCallback(Callback):
     def __init__(self): pass
@@ -107,7 +117,7 @@ class CudaCallback(Callback):
 
     def on_batch_begin(self, batch):
         self.xb, self.yb = batch[0], batch[1]
-        self.xb = self.xb.unsqueeze(1) # uncomment when CNN
+        self.xb = self.xb.unsqueeze(1)  # uncomment when CNN
         if self.learn.gpu:
             self.xb = self.xb.to(self.learn.device)
             self.yb = self.yb.to(self.learn.device)
@@ -124,10 +134,10 @@ class Monitor(Recorder):
         self.learn = learn
         self.epochs = epochs
 
-        self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
+        self.batch_vals = {"train_loss": [], "valid_loss": [],
+                           "train_pred": [], "valid_pred": []}
         for mon in self.monitor:
             self.history[mon] = []
-        
 
     def on_batch_end(self):
         _, batch_pred = torch.max(self.out.data, 1)
@@ -136,7 +146,7 @@ class Monitor(Recorder):
             self.batch_vals["train_pred"].append(batch_correct)
         else:
             self.batch_vals["valid_pred"].append(batch_correct)
-        
+
     def on_epoch_end(self):
         for mon in self.monitor:
             self.history[mon].append(getattr(self, mon)())
@@ -146,16 +156,14 @@ class Monitor(Recorder):
             self._print_console()
         setattr(self.learn, "history_raw", self.history)
 
-
     def valid_acc(self):
         return sum(self.batch_vals["valid_pred"]) / len(self.batch_vals["valid_pred"])
 
     def valid_loss(self):
         return sum(self.batch_vals["valid_loss"]) / len(self.batch_vals["valid_loss"])
-        
+
     def train_loss(self):
         return sum(self.batch_vals["train_loss"]) / len(self.batch_vals["train_loss"])
-    
 
     def _print_console(self):
         out_string = f""
@@ -173,7 +181,7 @@ class TrackValues(Callback):
     def on_epoch_end(self):
         for monitor, values in self.learn.history_raw.items():
             if ("loss" in monitor) and (self.epoch == 0):
-                self.track_best_vals[monitor] = [np.less, np.inf]
+                self.track_best_vals[monitor] = [np.less, values[0]]
             if ("loss" in monitor) and (self.epoch > 0):
                 comp = self.track_best_vals[monitor][0]
                 best_val = self.track_best_vals[monitor][1]
@@ -181,14 +189,13 @@ class TrackValues(Callback):
                 if comp(new_val, best_val):
                     self.track_best_vals[monitor][1] = new_val
             if ("acc" in monitor) and (self.epoch == 0):
-                self.track_best_vals[monitor] = [np.greater, -np.inf]
+                self.track_best_vals[monitor] = [np.greater, values[0]]
             if ("acc" in monitor) and (self.epoch > 0):
                 comp = self.track_best_vals[monitor][0]
                 best_val = self.track_best_vals[monitor][1]
                 new_val = self.learn.history_raw[monitor][-1]
                 if comp(new_val, best_val):
                     self.track_best_vals[monitor][1] = new_val
-
 
 
 class EarlyStopping(TrackValues):
@@ -210,11 +217,11 @@ class EarlyStopping(TrackValues):
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        if epoch > 1:
-            diff = np.abs(self.best_val - self.track_best_vals[self.monitor][1])
+        if epoch > 0:
+            diff = np.abs(self.best_val -
+                          self.track_best_vals[self.monitor][1])
             if self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
                 self.counter += 1
-                print("not best-----------------------", self.counter)
             else:
                 if diff > self.delta:
                     self.counter = 0
@@ -222,12 +229,9 @@ class EarlyStopping(TrackValues):
                     print("new best:", self.monitor,  self.best_val)
                 else:
                     self.counter += 1
-            print(self.counter)
             if self.counter == self.patience:
-                print(self.counter, self.patience, diff)
                 self.learn.do_stop = True
 
-        
 
 class Checkpoints(TrackValues):
     def __init__(self):
@@ -237,6 +241,7 @@ class Checkpoints(TrackValues):
         self.delta = 1e-1
 
     def on_train_begin(self, learn, *args):
+        self.save_path = self.create_checkpoint_path()
         self.learn = learn
         if "loss" in self.monitor:
             self.comp = np.less
@@ -245,18 +250,78 @@ class Checkpoints(TrackValues):
             self.comp = np.greater
             self.best_val = -np.inf
 
-        
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        if epoch > 1:
-            diff = np.abs(self.best_val - self.track_best_vals[self.monitor][1])
+        if self.epoch > 0:
+            diff = np.abs(self.best_val -
+                          self.track_best_vals[self.monitor][1])
             if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
                 if diff > self.delta:
                     self.best_val = self.track_best_vals[self.monitor][1]
-                    print("new best model saved:", self.monitor,  self.best_val)
-        
-        
+                    print("new checkpoint")
+                    pd.DataFrame(self.)
+            
+            
 
+
+    def create_checkpoint_path(self):
+        if hasattr(self, "no_time_path"):
+            datetime_now = self.no_time_path
+        else:
+            datetime_now = datetime.now().strftime("%Y-%m-%d")
+        curr_path = Path(self.ckp_path + "/" +  datetime_now)
+        curr_path.mkdir(parents=True, exist_ok=True)
+
+        run_dirs = []
+        for path in curr_path.iterdir():
+            if path.is_dir():
+                run_dirs.append(path.name)
+
+        if (self.use_last_run and run_dirs):
+            run_path = curr_path / run_dirs[-1]
+        elif not self.use_last_run and run_dirs:
+            run_num = int(run_dirs[-1][-3:]) + 1
+            for i in range(3-len(str(run_num))):
+                run_num = "0" + str(run_num)
+            run_path = curr_path / Path("run_" + run_num)
+            run_path.mkdir(parents=True, exist_ok=True)
+        # (use_last_run and not run_dirs) or (not use_last_run and not run_dirs):
+        else:
+            run_path = curr_path / Path("run_001")
+            run_path.mkdir(parents=True, exist_ok=True)
+        return run_path
+
+def get_callbacks(setup_config):
+    implemented_cbs = {"m": Monitor(),
+                        "e": EarlyStopping(),
+                        "c": Checkpoints()}
+
+    cb_list = [c for c in setup_config if c[:2] == "c_"]
+    cb_list
+    cb_args = {}
+    for i in cb_list:
+        cb = i.split("_", 2)[:]
+        if cb[1] not in cb_args:
+            cb_args[cb[1]] = {cb[2]: setup_config[i]}
+        else:
+            cb_args[cb[1]][cb[2]] = setup_config[i]
+    cbs = []
+    for _cb, cb_list in cb_args.items():
+        # importent, that classes get instantiated here
+        cb = implemented_cbs[_cb]
+        for attr, val in cb_list.items():
+            setattr(cb, attr, val)
+        cbs.append(cb)
+    return cbs
+
+
+def get_callbackhandler(setup_config):
+    if any([c for c in setup_config.keys() if c[:2] == "c_"]):
+        cbs = [Recorder(), CudaCallback()]
+        cbs.extend(get_callbacks(setup_config))
+    else:
+        cbs = [Recorder(), CudaCallback()]
+    return CallbackHandler(cbs)
 #     def on_train_begin(self, learn, epochs):
 #         self.learn = learn
 #         self.epochs = epochs
@@ -293,7 +358,6 @@ class Checkpoints(TrackValues):
 #                             out=out, loss=loss, xb=xb, yb=yb)
 
 
-
 #     def __print_to_console(self):
 #         print_string = f""
 #         if self.epoch == self.epochs:
@@ -304,8 +368,6 @@ class Checkpoints(TrackValues):
 #         for mon in self.epoch_vals.items():
 #             print_string += f"{mon[0]}: {mon[1][-1]:.6f},  "
 #         print(print_string)
-
-
 
 
 # class EarlyStopping_Cb(Recorder_Cb):
@@ -345,35 +407,3 @@ class Checkpoints(TrackValues):
 # # run_variable which increases with each fit
 # # make folder_structure -> date -> check if there is a run folder -> safe best model to run_folder
 # # tracker_class that calcs the best value
-
-def get_callbacks(setup_config):
-    implemented_cbs = {"m": Monitor(),
-                       "e": EarlyStopping(),
-                       "c": Checkpoints()}
-
-    cb_list = [c for c in setup_config if c[:2] == "c_"]
-    cb_args = {}
-    for i in cb_list:
-        cb = i.split("_")[1:]
-        if cb[0] not in cb_args:
-            cb_args[cb[0]] = {cb[1]: setup_config[i]}
-        else:
-            cb_args[cb[0]][cb[1]] = setup_config[i]
-
-    cbs = []
-    for _cb, cb_list in cb_args.items():
-        # importent, that classes get instantiated here
-        cb = implemented_cbs[_cb]
-        for attr, val in cb_list.items():
-            setattr(cb, attr, val)
-        cbs.append(cb)
-    return cbs
-
-
-def get_callbackhandler(setup_config):
-    if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-        cbs = [Recorder(), CudaCallback()]
-        cbs.extend(get_callbacks(setup_config))
-    else:
-        cbs = [Recorder(), CudaCallback()]
-    return CallbackHandler(cbs)
