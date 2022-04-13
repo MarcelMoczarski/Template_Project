@@ -33,3 +33,4 @@ def plot_history(history):
             fig.add_trace(go.Scatter(x=history.index, y=history[key].values, name=key), row=1, col=idx+1 )
 
     fig.show()
+

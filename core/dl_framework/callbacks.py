@@ -239,13 +239,14 @@ class Checkpoints(TrackValues):
         super().__init__()
         self.monitor = "train_loss"
         self.patience = 20
+        self.history_format = "csv"
         self.delta = 1e-1
 
     def on_train_begin(self, learn, *args):
         self.save_path = self.create_checkpoint_path()
         self.learn = learn
         if hasattr(self, "detailed_name"):
-            self.save_name = f"_Arch-{self.learn.arch}_bs-{self.learn.bs}"
+            self.save_name = f"_Arch-{self.learn.arch}_bs-{self.learn.bs}_{self.monitor}"
         else:
             self.save_name = f""
         if hasattr(self, "debug_timestamp"):
@@ -270,8 +271,9 @@ class Checkpoints(TrackValues):
                 if diff > self.delta:
                     self.best_val = self.track_best_vals[self.monitor][1]
                     print("new checkpoint")
-            pd.DataFrame(self.learn.history_raw).set_index("epochs").to_csv(Path(self.save_path / f"history{self.save_name}.csv"))
-            
+            df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
+            to_func = getattr(df, "to_" + self.history_format)       
+            to_func(Path(self.save_path / f"history{self.save_name}.{self.history_format}"))          
             
 
 
