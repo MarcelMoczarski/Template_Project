@@ -15,8 +15,10 @@ class Callback():
         self.epochs
 
     def on_train_end(self): pass
+
     def on_epoch_begin(self, epoch, *args):
         self.epoch = epoch
+
     def on_epoch_end(self): pass
     def on_batch_begin(self, *args): pass
     def on_batch_end(self): pass
@@ -254,7 +256,7 @@ class Checkpoints(TrackValues):
             time = datetime.now()
             time = timezone.localize(time).strftime("%Y-%m-%dT%H_%M_%ST%z")
             self.save_name += f"_{time}"
-            
+
         if "loss" in self.monitor:
             self.comp = np.less
             self.best_val = np.inf
@@ -272,10 +274,9 @@ class Checkpoints(TrackValues):
                     self.best_val = self.track_best_vals[self.monitor][1]
                     print("new checkpoint")
             df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
-            to_func = getattr(df, "to_" + self.history_format)       
-            to_func(Path(self.save_path / f"history{self.save_name}.{self.history_format}"))          
-            
-
+            to_func = getattr(df, "to_" + self.history_format)
+            to_func(
+                Path(self.save_path / f"history{self.save_name}.{self.history_format}"))
 
     def create_checkpoint_path(self):
         if hasattr(self, "no_time_path"):
@@ -283,7 +284,7 @@ class Checkpoints(TrackValues):
         else:
             datetime_now = datetime.now().strftime("%Y-%m-%d")
 
-        curr_path = Path(self.ckp_path + "/" +  datetime_now)
+        curr_path = Path(self.ckp_path + "/" + datetime_now)
         curr_path.mkdir(parents=True, exist_ok=True)
 
         run_dirs = []
@@ -305,10 +306,11 @@ class Checkpoints(TrackValues):
             run_path.mkdir(parents=True, exist_ok=True)
         return run_path
 
+
 def get_callbacks(setup_config):
     implemented_cbs = {"m": Monitor(),
-                        "e": EarlyStopping(),
-                        "c": Checkpoints()}
+                       "e": EarlyStopping(),
+                       "c": Checkpoints()}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
     cb_list
@@ -336,88 +338,3 @@ def get_callbackhandler(setup_config):
     else:
         cbs = [Recorder(), CudaCallback()]
     return CallbackHandler(cbs)
-#     def on_train_begin(self, learn, epochs):
-#         self.learn = learn
-#         self.epochs = epochs
-#         for cb in self.cbs:
-#             cb.on_train_begin(learn, self.epochs)
-
-#     def on_train_end(self):
-#         for cb in self.cbs:
-#             cb.on_train_end()
-
-
-#     def on_epoch_end(self, *args):
-#         for mon in self.batch_vals:
-#             avg_val = sum(self.batch_vals[mon]) / len(self.batch_vals[mon])
-#             self.epoch_vals[mon].append(avg_val)
-#         if self.print2console:
-#             self.__print_to_console()
-
-
-#     def on_validate_begin(self):
-#         empty_string = "validate".rjust(
-#             len(f"epoch: {self.epoch} / {self.epochs}"))
-#         with torch.no_grad():
-#             pbar = tqdm(self.learn.data.valid_dl,
-#                         total=len(self.learn.data.valid_dl))
-#             for data in pbar:
-#                 pbar.set_description(empty_string, refresh=False)
-#                 xb, yb = data
-#                 out = self.learn.model(xb)
-#                 loss = self.learn.loss_func(out, yb)
-#                 for mon in self.monitor:
-#                     if mon[:5] == "valid":
-#                         self.implemented_metrics[mon](
-#                             out=out, loss=loss, xb=xb, yb=yb)
-
-
-#     def __print_to_console(self):
-#         print_string = f""
-#         if self.epoch == self.epochs:
-#             print_string += "\n"
-#         print_string += f"metrics: ".rjust(
-#             len(f"epoch: {self.epoch} / {self.epochs}")+2)
-
-#         for mon in self.epoch_vals.items():
-#             print_string += f"{mon[0]}: {mon[1][-1]:.6f},  "
-#         print(print_string)
-
-
-# class EarlyStopping_Cb(Recorder_Cb):
-#     def __init__(self, monitor="valid_loss", comp=np.less, patience=1):
-#         self.monitor = monitor
-#         self.patience = patience
-#         self.comp = np.less
-
-#     def on_train_begin(self, learn, *args):
-#         self.learn = learn
-#         self.wait = 0
-
-#     def on_epoch_end(self):
-#         minimum = self.learn.recorder[self.monitor][:-1].min()
-#         last_val = self.learn.recorder[self.monitor].iloc[-1]
-#         if minimum < last_val:
-#             self.wait += 1
-#         else:
-#             self.wait = 0
-#         if self.wait >= self.patience:
-#             self.learn._stop = True
-
-
-# class SaveBestModel_Cb(Callback):
-#     def __init__(self, path, monitor="valid_loss", date=date.today(), run=0):
-#         self.path = path
-#         self.monitor = monitor
-#         self.date_time = date
-#         self.run = run
-
-#     def on_epoch_end(self, *args):
-#         minimum = self.learn.recorder[self.monitor][:-1].min()
-#         last_val = self.learn.recorder[self.monitor].iloc[-1]
-#         if last_val < minimum:
-#             print(self.learn.cbh.Monitor_Cb)
-
-# # run_variable which increases with each fit
-# # make folder_structure -> date -> check if there is a run folder -> safe best model to run_folder
-# # tracker_class that calcs the best value

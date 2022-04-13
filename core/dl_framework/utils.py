@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 import pandas as pd
 
+
 def read_config(config_file):
     setup_config = {}
     # abr_dict = {}
@@ -23,19 +24,23 @@ def read_config(config_file):
                         setup_config[key_name] = subsubval
     return setup_config
 
+
 def plot_history(history):
     implemented_metric = ["acc", "loss"]
     plot_dict = {}
     for met in implemented_metric:
         plot_dict[met] = [s for s in history if met in s]
 
-    fig = make_subplots(rows=1, cols=len(plot_dict), subplot_titles=list(plot_dict.keys()))
+    fig = make_subplots(rows=1, cols=len(plot_dict),
+                        subplot_titles=list(plot_dict.keys()))
 
     for idx, (met, mets) in enumerate(plot_dict.items()):
         for key in mets:
-            fig.add_trace(go.Scatter(x=history.index, y=history[key].values, name=key), row=1, col=idx+1 )
+            fig.add_trace(go.Scatter(x=history.index,
+                          y=history[key].values, name=key), row=1, col=idx+1)
 
     fig.show()
+
 
 def get_history(ckp_path, monitor, fileformat=["csv"]):
     project_name = Path(os.getcwd()).name
@@ -44,8 +49,8 @@ def get_history(ckp_path, monitor, fileformat=["csv"]):
         if (path == project_name) and (i+1 != length):
             project_path = ckp_path.parents[length-i-2]
 
-    files = [] 
-    if type(fileformat) != list: 
+    files = []
+    if type(fileformat) != list:
         fileformat = [fileformat]
     for fmt in fileformat:
         for rel_path in ckp_path.rglob("*."+fmt):
@@ -55,8 +60,9 @@ def get_history(ckp_path, monitor, fileformat=["csv"]):
         for metric in files:
             if monitor in metric.name:
                 metric_files.append(metric)
-            
+
     return metric_files
+
 
 def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best"):
     files = get_history(ckp_path, monitor, fileformat)
@@ -80,5 +86,5 @@ def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best")
             tmp_df = get_func(hist)
             df_list.append(tmp_df)
         # best_idx = best_vals.index(max(best_vals))
-        # best_hist = 
+        # best_hist =
         return df_list

@@ -6,6 +6,7 @@ import toml
 from pathlib import Path
 import sys
 
+
 @click.command()
 @click.argument("config_path", default="./configs/default_train_config.toml", type=click.Path(exists=True))
 def main(config_path):
@@ -17,6 +18,7 @@ def main(config_path):
 
     learn = Learner(train_ds, setup_config)
     learn.fit(setup_config["g_num_epochs"])
+
 
 if __name__ == "__main__":
     main()

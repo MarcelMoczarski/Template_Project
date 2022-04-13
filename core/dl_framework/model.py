@@ -12,34 +12,34 @@ class Model_CNN(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=2
-                    ),
+            ),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2), #halves img dim
+            nn.MaxPool2d(kernel_size=2),  # halves img dim
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(
-                in_channels=nh, 
-                out_channels=2*nh, 
+                in_channels=nh,
+                out_channels=2*nh,
                 kernel_size=5,
                 stride=1,
                 padding=2
-                ),
-                nn.BatchNorm2d(32),
-                nn.ReLU(),
-                nn.MaxPool2d(kernel_size=2) #halves img dim
+            ),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2)  # halves img dim
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(
-                in_channels=2*nh, 
-                out_channels=2*2*nh, 
+                in_channels=2*nh,
+                out_channels=2*2*nh,
                 kernel_size=5,
                 stride=1,
                 padding=2
-                ),
-                nn.BatchNorm2d(64),
-                nn.ReLU(),
-                nn.MaxPool2d(kernel_size=2) #halves img dim
+            ),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2)  # halves img dim
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
@@ -52,7 +52,6 @@ class Model_CNN(nn.Module):
         x = self.conv3(x)
         out = self.fc(x)
         return out
-
 
 
 class Model_1(nn.Module):
@@ -76,6 +75,7 @@ class Model_1(nn.Module):
 
             # nn.Linear(32, n_out)
         )
+
     def forward(self, x):
         return self.model(x)
 
@@ -105,6 +105,7 @@ class Model_2(nn.Module):
             # nn.Dropout(p=0.2),
             nn.Linear(32, n_out)
         )
+
     def forward(self, x):
         return self.model(x)
 
@@ -113,4 +114,4 @@ def get_model(data, arch, lr, c, opt):
     input_shape = data.train_ds.x.shape[1]
     net = globals()[arch](input_shape, c)
     optim = getattr(torch.optim, opt)
-    return net, optim(net.parameters(), lr = lr)
+    return net, optim(net.parameters(), lr=lr)
