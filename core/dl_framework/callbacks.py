@@ -1,5 +1,5 @@
 import torch
-# from tqdm import tqdm
+from pathlib import Path
 import numpy as np
 # import pandas as pd
 # from datetime import date
@@ -197,7 +197,6 @@ class EarlyStopping(TrackValues):
         self.monitor = "train_loss"
         self.patience = 20
         self.counter = 0
-        self.tmp_history = {}
         self.delta = 1e-1
 
     def on_train_begin(self, learn, *args):
@@ -229,10 +228,34 @@ class EarlyStopping(TrackValues):
                 self.learn.do_stop = True
 
         
-# here function which calcs best val
 
-class Checkpoints(Recorder):
-    def __init__(self): pass
+class Checkpoints(TrackValues):
+    def __init__(self):
+        super().__init__()
+        self.monitor = "train_loss"
+        self.patience = 20
+        self.delta = 1e-1
+
+    def on_train_begin(self, learn, *args):
+        self.learn = learn
+        if "loss" in self.monitor:
+            self.comp = np.less
+            self.best_val = np.inf
+        if "acc" in self.monitor:
+            self.comp = np.greater
+            self.best_val = -np.inf
+
+        
+    def on_epoch_begin(self, epoch):
+        self.epoch = epoch
+        if epoch > 1:
+            diff = np.abs(self.best_val - self.track_best_vals[self.monitor][1])
+            if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
+                if diff > self.delta:
+                    self.best_val = self.track_best_vals[self.monitor][1]
+                    print("new best model saved:", self.monitor,  self.best_val)
+        
+        
 
 #     def on_train_begin(self, learn, epochs):
 #         self.learn = learn

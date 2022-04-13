@@ -35,7 +35,9 @@ patience = 10
 delta = 1e-10
 
 [callbacks.checkpoints]
-ckp_path = "/content/gdrive/MyDrive/Marcel_Moczarski/Data_Science/Google_Services/Local_Drive_Storage/Conda_Envs/Template_Project"
+monitor = "valid_loss"
+ckp_path = "/content/gdrive/MyDrive/Marcel_Moczarski/Data_Science/Google_Services/Local_Drive_Storage/Conda_Envs/Template_Project/checkpoints"
+no_time_path = "ckp_dir"
 save_best_model = true
 save_best_history = true
-reset_run = false
+use_last_run = false
