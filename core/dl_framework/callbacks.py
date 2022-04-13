@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from datetime import datetime
 import pandas as pd
+import pytz
 # from datetime import date
 
 
@@ -243,6 +244,16 @@ class Checkpoints(TrackValues):
     def on_train_begin(self, learn, *args):
         self.save_path = self.create_checkpoint_path()
         self.learn = learn
+        if hasattr(self, "detailed_name"):
+            self.save_name = f"_Arch-{self.learn.arch}_bs-{self.learn.bs}"
+        else:
+            self.save_name = f""
+        if hasattr(self, "debug_timestamp"):
+            timezone = pytz.timezone("Europe/Berlin")
+            time = datetime.now()
+            time = timezone.localize(time).strftime("%Y-%m-%dT%H_%M_%ST%z")
+            self.save_name += f"_{time}"
+            
         if "loss" in self.monitor:
             self.comp = np.less
             self.best_val = np.inf
@@ -259,7 +270,7 @@ class Checkpoints(TrackValues):
                 if diff > self.delta:
                     self.best_val = self.track_best_vals[self.monitor][1]
                     print("new checkpoint")
-                    pd.DataFrame(self.)
+            pd.DataFrame(self.learn.history_raw).set_index("epochs").to_csv(Path(self.save_path / f"history{self.save_name}.csv"))
             
             
 
@@ -269,6 +280,7 @@ class Checkpoints(TrackValues):
             datetime_now = self.no_time_path
         else:
             datetime_now = datetime.now().strftime("%Y-%m-%d")
+
         curr_path = Path(self.ckp_path + "/" +  datetime_now)
         curr_path.mkdir(parents=True, exist_ok=True)
 

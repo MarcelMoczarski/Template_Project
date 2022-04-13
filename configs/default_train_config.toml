@@ -41,5 +41,9 @@ ckp_path = "/content/gdrive/MyDrive/Marcel_Moczarski/Data_Science/Google_Service
 save_best_model = true
 save_best_history = true
 use_last_run = true
-delta = 1e-10
 
+delta = 1e-10
+detailed_name = true
+resume = true
+
+debug_timestamp = true

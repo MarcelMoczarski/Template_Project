@@ -42,6 +42,8 @@ class Learner():
 
             self.cbh.on_epoch_end()
 
+        self.cbh.on_epoch_begin(epoch) # change to on_train_end
+
     def all_batches(self, data): 
         pbar = tqdm(data, total=len(data))
         for batch in pbar:
