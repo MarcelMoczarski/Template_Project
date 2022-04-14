@@ -34,7 +34,8 @@ class Callback():
     def on_step_begin(self): pass
     def on_step_end(self): pass
     def on_validate_begin(self): pass
-    def on_validate_end(selfs, *args): pass
+    def on_validate_end(self): 
+        self.learn.model.train()
 
 class CallbackHandler():
     def __init__(self, cbs, learn):
@@ -74,30 +75,30 @@ class CallbackHandler():
         for cb in self.cbs:
             cb.on_validate_begin()
 
-    def on_validate_end(self, loss):
+    def on_validate_end(self):
         for cb in self.cbs:
-            cb.on_validate_end(loss)
+            cb.on_validate_end()
 
 
-class CudaCallback(Callback):
-    """Manages if data/ model is send to gpu or cpu
+# class CudaCallback(Callback):
+#     """Manages if data/ model is send to gpu or cpu
 
-    Args:
-        Callback (self): Implements alls methods
-    """
-    def on_train_begin(self, epochs):
-        if self.learn.gpu:
-            # todo: error message if no gpu available
-            self.learn.model = self.learn.model.to(self.learn.device)
+#     Args:
+#         Callback (self): Implements alls methods
+#     """
+#     # def on_train_begin(self, epochs):
+#     #     if self.learn.gpu:
+#     #         # todo: error message if no gpu available
+#     #         self.learn.model = self.learn.model.to(self.learn.device)
 
-    def on_batch_begin(self, batch):
-        self.xb, self.yb = batch[0], batch[1]
-        # todo: uncomment when CNN
-        self.xb = self.xb.unsqueeze(1)
-        if self.learn.gpu:
-            self.xb = self.xb.to(self.learn.device)
-            self.yb = self.yb.to(self.learn.device)
-        self.batch = (self.xb, self.yb)
+#     def on_batch_begin(self, batch):
+#         self.xb, self.yb = batch[0], batch[1]
+#         # todo: uncomment when CNN
+#         self.xb = self.xb.unsqueeze(1)
+#         if self.learn.gpu:
+#             self.xb = self.xb.to(self.learn.device)
+#             self.yb = self.yb.to(self.learn.device)
+#         self.batch = (self.xb, self.yb)
 
 
 class Recorder(Callback):
@@ -117,31 +118,36 @@ class Recorder(Callback):
         self.new_best_values = {}
         self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
         self.monitor = []
-
-        # if self.learn.resume:
-        #     _, _, self.learn.history_raw, _ = load_checkpoint(
-        #         self.learn.resume, self.learn.model, self.learn.opt)
-        
+        if self.learn.resume:
+            self.learn.model, self.learn.opt, self.history, self.best_values = load_checkpoint(
+                self.learn.resume, self.learn.model, self.learn.opt)
+            # for state in self.learn.opt.state.values():
+            #     for k, v in state.items():
+            #         if isinstance(v, torch.Tensor):
+            #             state[k] = v.to(self.learn.device)
+                        
     def on_train_begin(self, epochs):
         self.learn.model.train()
         self.epochs = epochs
         if self.monitor == []:
             self.monitor = ["train_loss", "valid_loss"]
-        #     setattr(self.learn, "monitor", ["train_loss", "valid_loss"])
-        for mon in self.monitor:
-            self.history[mon] = []
+        if not self.learn.resume:
+            for mon in self.monitor:
+                self.history[mon] = []
         
-        for mon in self.monitor:
-            if "loss" in mon:
-                self.best_values[mon] = [np.less, np.inf, np.inf]
-                self.history[mon].append(np.inf)
-            if "acc" in mon:
-                self.best_values[mon] = [np.greater, -np.inf, -np.inf]
-                self.history[mon].append(-np.inf)
-            self.new_best_values[mon] = False
-            
+            for mon in self.monitor:
+                if "loss" in mon:
+                    self.best_values[mon] = [np.less, np.inf, np.inf]
+                    self.history[mon].append(np.inf)
+                if "acc" in mon:
+                    self.best_values[mon] = [np.greater, -np.inf, -np.inf]
+                    self.history[mon].append(-np.inf)
+                self.new_best_values[mon] = False
+        else:
+            for mon in self.monitor:
+                self.new_best_values[mon] = False
+        setattr(self.learn, "best_values", self.best_values)                
         setattr(self.learn, "history_raw", self.history)
-        setattr(self.learn, "best_values", self.best_values)
         setattr(self.learn, "new_best_values", self.new_best_values)
           
     def on_epoch_begin(self, epoch):
@@ -179,7 +185,7 @@ class Recorder(Callback):
         self.learn.history_raw = self.history
         
         for mon in self.monitor:
-            old_val = self.best_values[mon][1]
+            old_val = self.best_values[mon][2]
             new_val = self.history[mon][-1]
             comp = self.best_values[mon][0]
             if comp(new_val, old_val):
@@ -223,23 +229,7 @@ class Checkpoints(Callback):
         else:
             self.save_name += f"_{self.debug_timestamp}"
 
-#         if "loss" in self.monitor:
-#             self.comp = np.less
-#             self.best_val = np.inf
-#         if "acc" in self.monitor:
-#             self.comp = np.greater
-#             self.best_val = -np.inf
-            
-#         if self.learn.resume:
-#             self.learn.model, self.learn.opt, self.learn.history_raw, self.track_best_vals = load_checkpoint(
-#             self.learn.resume, self.learn.model, self.learn.opt)
-#             self.comp, self.best_val = self.track_best_vals[self.monitor][0], self.track_best_vals[self.monitor][1]
-
     def on_epoch_end(self):
-#         self.epoch = epoch
-#         if self.epoch > 0:
-#              diff = np.abs(self.best_val -
-#                           self.track_best_vals[self.monitor][1])
         if self.save_model:
             checkpoint = {
                 "best_values": self.learn.best_values,
@@ -322,8 +312,8 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
-    history = checkpoint["history"]
-    best_history = checkpoint["best_history"]
+    history = checkpoint["history_raw"]
+    best_history = checkpoint["best_values"]
     return model, optimizer, history, best_history
 
 
@@ -373,12 +363,12 @@ def get_callbackhandler(setup_config, learn):
     Adds:
         Recorder and CudaCallback are added automatically in case of no Callbacks in setup.toml
     """
-    if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-        cbs = [CudaCallback(learn)]
-        cbs.extend(get_callbacks(setup_config, learn))
-    else:
-        cbs = [CudaCallback(learn)]
-    return CallbackHandler(cbs, learn)
+    # if any([c for c in setup_config.keys() if c[:2] == "c_"]):
+    #     cbs = [CudaCallback(learn)]
+    #     cbs.extend(get_callbacks(setup_config, learn))
+    # else:
+    #     cbs = [CudaCallback(learn)]
+    return CallbackHandler(get_callbacks(setup_config, learn), learn)
 
 
 # class Callback():

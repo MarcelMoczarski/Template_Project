@@ -23,20 +23,17 @@ class Container():
         self.data = get_databunch(
             data, self.bs, setup_config["g_valid_split"], self.c)
         self.model, self.opt = get_model(
-            self.data, self.arch, self.lr, self.c, self.opt)
+            self.data, self.arch, self.lr, self.c, self.opt, self.device)
         self.do_stop = False
         self.resume = setup_config["g_resume"]
 
 class Learner():
-
-
     def __init__(self, data, setup_config):
         self.learn = Container(data, setup_config)
         self.cbh = get_callbackhandler(setup_config, self.learn)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def fit(self, epochs):
-        # self.cbh.on_train_begin(self.learn, epochs)
         self.cbh.on_train_begin(epochs)
         
         if not self.learn.resume:
@@ -53,7 +50,7 @@ class Learner():
             self.cbh.on_validate_begin()
             with torch.no_grad():
                 self.all_batches(self.learn.data.valid_dl)
-
+            self.cbh.on_validate_end()
             self.cbh.on_epoch_end()
 
         # self.cbh.on_epoch_begin(epoch)  # change to on_train_end
@@ -63,11 +60,11 @@ class Learner():
         for batch in pbar:
             self.one_batch(batch)
             self.cbh.on_batch_end()
-        # pbar.set_description(f"self.learn.history")
 
     def one_batch(self, batch):
-        self.cbh.on_batch_begin(batch)
-        xb, yb = self.cbh.CudaCallback.batch
+        xb, yb = batch
+        xb = xb.unsqueeze(1)
+        xb, yb = xb.to(self.learn.device), yb.to(self.learn.device)
         out = self.learn.model(xb)
         loss = self.learn.loss_func(out, yb)
         if not self.cbh.on_loss_end(loss, out, yb):

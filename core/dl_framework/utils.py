@@ -72,7 +72,7 @@ def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best")
         df_list = []
         for idx, hist in enumerate(files):
             get_func = getattr(pd, "read_" + hist.suffix[1:])
-            tmp_df = get_func(hist)
+            tmp_df = get_func(hist, skiprows=range(1, 2))
             df_list.append(tmp_df)
         # best_idx = best_vals.index(max(best_vals))
         # best_hist =
@@ -97,11 +97,11 @@ def plot_history(history):
             fig.add_trace(go.Scatter(x=history.index, y=history[key].values, name=key, line=dict(color=new_color)), row=1, col=idx+1)
             dmin, dmax = history[key].min(), history[key].max()
             if met == "acc":
-                epoch = history[key].argmax() + 1
+                epoch = history[key].argmax()
                 fig.add_trace(go.Scatter(x=[epoch], y=[dmax], name="best val", line=dict(color=new_color, width=1, dash="dash")), row=1, col=idx+1)
                 fig.add_vline(x=epoch, line_width=1, line_color=new_color, line_dash="dash", row=1, col=idx+1)
             if met == "loss":
-                epoch = history[key].argmin() + 1
+                epoch = history[key].argmin()
                 fig.add_trace(go.Scatter(x=[epoch], y=[dmin], name="best val", line=dict(color=new_color, width=1, dash="dash")), row=1, col=idx+1)
                 fig.add_vline(x=epoch, line_width=1, line_color=new_color, line_dash="dash", row=1, col=idx+1)
     # learn.history.keys()[0]
