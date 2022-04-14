@@ -1,10 +1,11 @@
-from core.dl_framework.utils import read_config
-from core.dl_framework.data import get_dataset, Dataset
-from core.dl_framework.learner import Learner
+import sys
+from pathlib import Path
+
 import click
 import toml
-from pathlib import Path
-import sys
+from core.dl_framework.data import Dataset, get_dataset
+from core.dl_framework.learner import Learner
+from core.dl_framework.utils import read_config
 
 
 @click.command()

@@ -1,5 +1,5 @@
-import torchvision
 import numpy as np
+import torchvision
 from sklearn.model_selection import train_test_split
 
 

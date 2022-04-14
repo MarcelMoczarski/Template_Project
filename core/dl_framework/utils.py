@@ -1,10 +1,11 @@
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-from datetime import datetime
-import pytz
-from pathlib import Path
 import os
+from datetime import datetime
+from pathlib import Path
+
 import pandas as pd
+import plotly.graph_objects as go
+import pytz
+from plotly.subplots import make_subplots
 
 
 def read_config(config_file):
