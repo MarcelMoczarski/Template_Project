@@ -27,15 +27,12 @@ if __name__ == "__main__":
 
 # calc runtime
 # average runtime
-# toml file
-# add paths in setup for start training
 # add mechanism to safe model to gdrive. with option to resume training
 # add save best model
 # add tensorboard support
 # add telegramlogger
 # check pytest
 # best model checkpoint
-# earlystopping / w delta param
 # tensorflow
 # transferlearning
 # gridsearch

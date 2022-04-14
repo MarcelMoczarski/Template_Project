@@ -1,3 +1,4 @@
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -6,8 +7,19 @@ import pandas as pd
 import pytz
 import torch
 
+"""all checkpoints should be included at the moment
+
+implemented callbacks:
+    Recorder: Tracking train/valid loss and setattr[yb, out, loss] for all child classes
+    CudaCallback: Manages devices and where data is send to
+    Monitor: Tracks 
+"""
+
 
 class Callback():
+    """parent class for all Callbacks
+    implements dummy methods
+    """
     def __init__(): pass
 
     def on_train_begin(self, learn, epochs):
@@ -78,7 +90,14 @@ class CallbackHandler():
 
 
 class Recorder(Callback):
-    # using numpy arrays for summming vals is much faster than lists
+    """ Tracking of  train/valid loss and setattr[yb, out, loss] to be available in all child classes
+
+    Args:
+        Callback (self): Implements alls methods
+    """
+    # todo: set self.history_raw on epoch end, in case that Monitor is not included
+    #  * using numpy arrays for summming vals is much faster than lists
+
     def __init__(self): pass
 
     def on_train_begin(self, learn, epochs):
@@ -104,23 +123,26 @@ class Recorder(Callback):
         else:
             self.batch_vals["valid_loss"].append(loss.item())
 
-    #     self.best_value =
-
-    # def _best_value(self):
-
 
 class CudaCallback(Callback):
+    """Manages if data/ model is send to gpu or cpu
+
+    Args:
+        Callback (self): Implements alls methods
+    """
+
     def __init__(self): pass
 
     def on_train_begin(self, learn, *args):
         self.learn = learn
         if self.learn.gpu:
-            # error message if no gpu available
+            # todo: error message if no gpu available
             learn.model = learn.model.to(learn.device)
 
     def on_batch_begin(self, batch):
         self.xb, self.yb = batch[0], batch[1]
-        self.xb = self.xb.unsqueeze(1)  # uncomment when CNN
+        # todo: uncomment when CNN
+        self.xb = self.xb.unsqueeze(1)
         if self.learn.gpu:
             self.xb = self.xb.to(self.learn.device)
             self.yb = self.yb.to(self.learn.device)
@@ -128,6 +150,12 @@ class CudaCallback(Callback):
 
 
 class Monitor(Recorder):
+    """Monitors custom metrics
+
+    Args:
+        Recorder (_type_): _description_
+    """
+
     def __init__(self):
         super().__init__()
         self.history = {"epochs": []}
@@ -178,6 +206,15 @@ class Monitor(Recorder):
 
 
 class TrackValues(Callback):
+    """Class tracks best values for train/ valid loss/acc
+
+    Args:
+        Callback: inherits self.learn.history_raw attribute from Callback class. self.learn.history_raw stores all implemented
+                  metric values for each epoch
+    
+    Attr:
+        track_best_vals: Saves best values from self.learn.history_raw
+    """
     def __init__(self):
         self.track_best_vals = {}
 
@@ -237,10 +274,35 @@ class EarlyStopping(TrackValues):
 
 
 class Checkpoints(TrackValues):
+    # todo: finish docstring
+    """Saves history and Pytorch models during training
+    
+    Args:
+        TrackValues: Parent class tracks best values for train/ valid loss/acc
+    
+    Attr:
+        VarAttr:
+            monitor(str): quantity to be monitored
+            history_format(fileformat): fileformat for panda.DataFrame.to_*'s method. [parquet for high compression and fast reading]
+            delta(float): min change in monitored quantity to qualify as improvement 
+            ckp_path(str): path to save checkpoints
+            no_time_path(str): if not specified in toml the current date is used as checkpoint foldername
+            use_last_run(bool): if true, no new run directory is created. all files are saved in last run directory
+            detailed_name(bool): if true, file names are saved with arch/bs/monitor information
+            debug_timestamp(bool): if true, each run is saved in the last run folder, but with timeformat h/m/s
+            resume(str): if specified in toml: history and model is loaded, before resuming training 
+        FuncAttr:
+            on_train_begin: creates folder struct for new run and initiates function for comparison of best and new value
+            on_epoch_begin: checks for new best value -> saves history and model statedict
+            create_checkpoint_path: creates checkpoint directory structure
+
+    Deps:
+        Modules: on_train_begin -> datetime/ pytz/ np
+        Functions: on_train_begin -> self.create_checkpoint_path
+    """
     def __init__(self):
         super().__init__()
         self.monitor = "train_loss"
-        self.patience = 20
         self.history_format = "csv"
         self.delta = 1e-1
 
@@ -278,6 +340,7 @@ class Checkpoints(TrackValues):
             to_func(
                 Path(self.save_path / f"history{self.save_name}.{self.history_format}"))
 
+    
     def create_checkpoint_path(self):
         if hasattr(self, "no_time_path"):
             datetime_now = self.no_time_path
@@ -300,14 +363,35 @@ class Checkpoints(TrackValues):
                 run_num = "0" + str(run_num)
             run_path = curr_path / Path("run_" + run_num)
             run_path.mkdir(parents=True, exist_ok=True)
-        # (use_last_run and not run_dirs) or (not use_last_run and not run_dirs):
+        # * not sure if this is needed: (use_last_run and not run_dirs) or (not use_last_run and not run_dirs):
         else:
             run_path = curr_path / Path("run_001")
             run_path.mkdir(parents=True, exist_ok=True)
         return run_path
 
 
+def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
+    """save best and last pytorch model in checkpoint_path
+
+    Args:
+        state (dict): checkpoint to save
+        is_best (bool): getting bool from metric function
+        checkpoint_path (str or Path): path to save checkpoint
+        best_model_path (str or Path): path to save best model
+    """
+    torch.save(state, checkpoint_path)
+    if is_best:
+        shutil.copyfile(checkpoint_path, best_model_path)
+        
 def get_callbacks(setup_config):
+    """Loading Callback classes according to setup.toml
+
+    Args:
+        setup_config (dict): contains information of callbacks and attributes
+
+    Returns:
+        list: returns list of all callback classes
+    """
     implemented_cbs = {"m": Monitor(),
                        "e": EarlyStopping(),
                        "c": Checkpoints()}
@@ -323,7 +407,7 @@ def get_callbacks(setup_config):
             cb_args[cb[1]][cb[2]] = setup_config[i]
     cbs = []
     for _cb, cb_list in cb_args.items():
-        # importent, that classes get instantiated here
+        # important, that classes get instantiated here
         cb = implemented_cbs[_cb]
         for attr, val in cb_list.items():
             setattr(cb, attr, val)
@@ -332,9 +416,22 @@ def get_callbacks(setup_config):
 
 
 def get_callbackhandler(setup_config):
+    """Creates Callbackhandler with Callbacks from setup.toml
+
+    Args:
+        setup_config (dict): contains information of callbacks and attributes
+    Deps:
+        get_callbacks(dict): loading and returning callback classes according to setup.toml as list 
+    Returns:
+        CallbackHandler: returns CallbackHanlder class with all callbacks
+    
+    Adds:
+        Recorder and CudaCallback are added automatically in case of no Callbacks in setup.toml
+    """
     if any([c for c in setup_config.keys() if c[:2] == "c_"]):
         cbs = [Recorder(), CudaCallback()]
         cbs.extend(get_callbacks(setup_config))
     else:
         cbs = [Recorder(), CudaCallback()]
     return CallbackHandler(cbs)
+

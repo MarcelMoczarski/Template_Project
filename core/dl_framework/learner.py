@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 
 class Container():
+
     def __init__(self, data, setup_config):
         self.opt = setup_config["g_optimizer"]
         self.loss_func = getattr(loss_functions, setup_config["g_loss_func"])
@@ -25,10 +26,11 @@ class Container():
             self.data, self.arch, self.lr, self.c, self.opt)
 
         self.do_stop = False
-        # self._setup_config = setup_config
 
 
 class Learner():
+
+
     def __init__(self, data, setup_config):
         self.learn = Container(data, setup_config)
         self.cbh = get_callbackhandler(setup_config)
@@ -72,8 +74,6 @@ class Learner():
     @property
     def history(self):
         return pd.DataFrame(self.learn.history_raw).set_index("epochs")
-
-
 
 
 #     def save(self, path, run, **kwargs):
