@@ -169,7 +169,9 @@ class Monitor(Recorder):
                            "train_pred": [], "valid_pred": []}
         for mon in self.monitor:
             self.history[mon] = []
-
+            
+        setattr(self.learn, "history_raw", self.history)
+        
     def on_batch_end(self):
         _, batch_pred = torch.max(self.out.data, 1)
         batch_correct = (batch_pred == self.yb).sum().item() / len(self.yb)
@@ -183,9 +185,15 @@ class Monitor(Recorder):
             self.history[mon].append(getattr(self, mon)())
             self.best_values[mon] = max(self.history[mon])
         self.history["epochs"].append(int(self.epoch+1))
+
         if self.verbose == True:
             self._print_console()
-        setattr(self.learn, "history_raw", self.history)
+
+        if type(self.learn.resume) is bool:
+            setattr(self.learn, "history_raw", self.history)
+        else:
+            self.history = self.learn.history_raw
+            self.learn.resume = False
 
     def valid_acc(self):
         return sum(self.batch_vals["valid_pred"]) / len(self.batch_vals["valid_pred"])
@@ -211,10 +219,11 @@ class TrackValues(Callback):
     Args:
         Callback: inherits self.learn.history_raw attribute from Callback class. self.learn.history_raw stores all implemented
                   metric values for each epoch
-    
+
     Attr:
         track_best_vals: Saves best values from self.learn.history_raw
     """
+
     def __init__(self):
         self.track_best_vals = {}
 
@@ -276,10 +285,10 @@ class EarlyStopping(TrackValues):
 class Checkpoints(TrackValues):
     # todo: finish docstring
     """Saves history and Pytorch models during training
-    
+
     Args:
         TrackValues: Parent class tracks best values for train/ valid loss/acc
-    
+
     Attr:
         VarAttr:
             monitor(str): quantity to be monitored
@@ -300,6 +309,7 @@ class Checkpoints(TrackValues):
         Modules: on_train_begin -> datetime/ pytz/ np
         Functions: on_train_begin -> self.create_checkpoint_path
     """
+
     def __init__(self):
         super().__init__()
         self.monitor = "train_loss"
@@ -309,21 +319,24 @@ class Checkpoints(TrackValues):
     def on_train_begin(self, learn, *args):
         self.save_path = self.create_checkpoint_path()
         self.learn = learn
-        
+
         if self.detailed_name:
             self.save_name = f"_Arch-{self.learn.arch}_bs-{self.learn.bs}_{self.monitor}"
         else:
             self.save_name = f""
-            
+
         if type(self.debug_timestamp) is bool:
             if self.debug_timestamp:
                 timezone = pytz.timezone("Europe/Berlin")
                 time = datetime.now()
                 time = timezone.localize(time).strftime("%Y-%m-%dT%H_%M_%ST%z")
                 self.save_name += f"_{time}"
-        else: 
+        else:
             self.save_name += f"_{self.debug_timestamp}"
-            
+
+        if not type(self.learn.resume) is bool:
+            self.learn.model, self.learn.opt, self.learn.history_raw = load_checkpoint(
+                self.learn.resume, self.learn.model, self.learn.opt)
         if "loss" in self.monitor:
             self.comp = np.less
             self.best_val = np.inf
@@ -333,32 +346,36 @@ class Checkpoints(TrackValues):
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        if self.epoch > 0:
+        if self.epoch >= 0:
             diff = np.abs(self.best_val -
                           self.track_best_vals[self.monitor][1])
-            
-            checkpoint = {
-                "epoch": self.epoch,
-                "monitor_val": self.learn.history_raw[self.monitor][-1],
-                "state_dict": self.learn.model.state_dict(),
-                "optimizer": self.learn.opt.state_dict()
-            }
-            save_checkpoint(checkpoint, False, Path(self.save_path / f"model_{self.save_name}"))            
-            
-            if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
-                if diff > self.delta:
-                    self.best_val = self.track_best_vals[self.monitor][1]
-                    save_checkpoint(checkpoint, True, Path(self.save_path / f"model_{self.save_name}"))              
-                    print("new checkpoint")
-            df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
-            to_func = getattr(df, "to_" + self.history_format)
-            to_func(
-                Path(self.save_path / f"history{self.save_name}.{self.history_format}"))
 
-    
+            if self.save_model:
+                checkpoint = {
+                    "history": self.learn.history_raw,
+                    "state_dict": self.learn.model.state_dict(),
+                    "optimizer": self.learn.opt.state_dict()
+                }
+
+                save_checkpoint(checkpoint, False, Path(
+                    self.save_path / f"model_{self.save_name}"))
+
+                if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
+                    if diff > self.delta:
+                        self.best_val = self.track_best_vals[self.monitor][1]
+                        save_checkpoint(checkpoint, True, Path(
+                            self.save_path / f"model_{self.save_name}"))
+                        print("new checkpoint")
+
+            if self.save_history:
+                df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
+                to_func = getattr(df, "to_" + self.history_format)
+                to_func(
+                    Path(self.save_path / f"history{self.save_name}.{self.history_format}"))
+
     def create_checkpoint_path(self):
         """Creating Checkpoint directory structure according to attributs set in setup.toml
-        
+
         Returns:
             run_path(str): path to created checkpoint directory
         """
@@ -398,12 +415,29 @@ def save_checkpoint(state, is_best, checkpoint_path):
         is_best(bool): getting bool from metric function
         checkpoint_path(str): path to save checkpoint
     """
-    save_path = checkpoint_path.as_posix()  + ".pt"
+    save_path = checkpoint_path.as_posix() + ".pt"
     torch.save(state, save_path)
     if is_best:
         best_path = checkpoint_path.as_posix() + "_best.pt"
         shutil.copyfile(save_path, best_path)
-        
+
+
+def load_checkpoint(checkpoint_path, model, optimizer):
+    """loads pytorch model and history
+
+    Args:
+        checkpoint_path(str): path to save checkpoint
+        model(nn.Model): model to load checkpoint parameters into
+        optimizer(torch.optim): in previous training defined optimizer
+    """
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint["state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+    history = checkpoint["history"]
+
+    return model, optimizer, history
+
+
 def get_callbacks(setup_config):
     """Loading Callback classes according to setup.toml
 
@@ -444,8 +478,8 @@ def get_callbackhandler(setup_config):
     Deps:
         get_callbacks(dict): loading and returning callback classes according to setup.toml as list 
     Returns:
-        CallbackHandler: returns CallbackHanlder class with all callbacks
-    
+        CallbackHandler: returns CallbackHandler class with all callbacks
+
     Adds:
         Recorder and CudaCallback are added automatically in case of no Callbacks in setup.toml
     """
@@ -455,4 +489,3 @@ def get_callbackhandler(setup_config):
     else:
         cbs = [Recorder(), CudaCallback()]
     return CallbackHandler(cbs)
-

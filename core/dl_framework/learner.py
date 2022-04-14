@@ -24,9 +24,8 @@ class Container():
             data, self.bs, setup_config["g_valid_split"], self.c)
         self.model, self.opt = get_model(
             self.data, self.arch, self.lr, self.c, self.opt)
-
         self.do_stop = False
-
+        self.resume = setup_config["g_resume"]
 
 class Learner():
 
