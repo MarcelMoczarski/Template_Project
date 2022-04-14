@@ -7,6 +7,9 @@ from core.dl_framework.data import Dataset, get_dataset
 from core.dl_framework.learner import Learner
 from core.dl_framework.utils import read_config
 
+import tkinter as tk
+from tkinter import filedialog
+
 
 @click.command()
 @click.argument("config_path", default="./configs/default_train_config.toml", type=click.Path(exists=True))
@@ -18,8 +21,11 @@ def main(config_path):
     train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
     learn = Learner(train_ds, setup_config)
-    learn.fit(setup_config["g_num_epochs"])
-
+    
+    # learn.fit(setup_config["g_num_epochs"])
+    root = tk.Tk()
+    root.withdraw()
+    files = filedialog.askopenfilenames()
 
 if __name__ == "__main__":
     main()
