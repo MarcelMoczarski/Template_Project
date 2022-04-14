@@ -331,9 +331,19 @@ class Checkpoints(TrackValues):
         if self.epoch > 0:
             diff = np.abs(self.best_val -
                           self.track_best_vals[self.monitor][1])
+            
+            checkpoint = {
+                "epoch": self.epoch,
+                "monitor_val": self.learn.history_raw[self.monitor][-1],
+                "state_dict": self.learn.model.state_dict(),
+                "optimizer": self.learn.opt.state_dict()
+            }
+            save_checkpoint(checkpoint, False, Path(self.save_path / f"model_{self.save_name}"))            
+            
             if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
                 if diff > self.delta:
                     self.best_val = self.track_best_vals[self.monitor][1]
+                    save_checkpoint(checkpoint, True, Path(self.save_path / f"model_{self.save_name}"))              
                     print("new checkpoint")
             df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
             to_func = getattr(df, "to_" + self.history_format)
@@ -342,6 +352,11 @@ class Checkpoints(TrackValues):
 
     
     def create_checkpoint_path(self):
+        """Creating Checkpoint directory structure according to attributs set in setup.toml
+        
+        Returns:
+            run_path(str): path to created checkpoint directory
+        """
         if hasattr(self, "no_time_path"):
             datetime_now = self.no_time_path
         else:
@@ -370,18 +385,19 @@ class Checkpoints(TrackValues):
         return run_path
 
 
-def save_checkpoint(state, is_best, checkpoint_path, best_model_path):
+def save_checkpoint(state, is_best, checkpoint_path):
     """save best and last pytorch model in checkpoint_path
 
     Args:
-        state (dict): checkpoint to save
-        is_best (bool): getting bool from metric function
-        checkpoint_path (str or Path): path to save checkpoint
-        best_model_path (str or Path): path to save best model
+        state(dict): checkpoint to save
+        is_best(bool): getting bool from metric function
+        checkpoint_path(str): path to save checkpoint
     """
-    torch.save(state, checkpoint_path)
+    save_path = checkpoint_path.as_posix()  + ".pt"
+    torch.save(state, save_path)
     if is_best:
-        shutil.copyfile(checkpoint_path, best_model_path)
+        best_path = checkpoint_path.as_posix() + "_best.pt"
+        shutil.copyfile(save_path, best_path)
         
 def get_callbacks(setup_config):
     """Loading Callback classes according to setup.toml
