@@ -33,11 +33,11 @@ class Learner():
     def __init__(self, data, setup_config):
         self.learn = Container(data, setup_config)
         self.cbh = get_callbackhandler(setup_config, self.learn)
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def fit(self, epochs):
-        self.cbh.on_train_begin(self.learn, epochs)
+        # self.cbh.on_train_begin(self.learn, epochs)
+        self.cbh.on_train_begin(epochs)
         
         if not self.learn.resume:
             start = 0
@@ -56,7 +56,7 @@ class Learner():
 
             self.cbh.on_epoch_end()
 
-        self.cbh.on_epoch_begin(epoch)  # change to on_train_end
+        # self.cbh.on_epoch_begin(epoch)  # change to on_train_end
 
     def all_batches(self, data):
         pbar = tqdm(data, total=len(data))
