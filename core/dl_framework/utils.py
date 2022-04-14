@@ -54,6 +54,7 @@ def get_history(ckp_path, monitor, fileformat=["csv"]):
 
 
 def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best"):
+    # todo: add if statement to load specific date/run history
     files = get_history(ckp_path, monitor, fileformat)
     if specific == "best":
         best_vals = []
@@ -78,6 +79,7 @@ def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best")
         return df_list
     
 def plot_history(history):
+    # todo: add functionality to get list of history_files and plot each file or plot all files in one
     col_pal = px.colors.sequential.Rainbow
     col_pal_iter = itertools.cycle(col_pal) 
 
