@@ -32,13 +32,19 @@ class Learner():
 
     def __init__(self, data, setup_config):
         self.learn = Container(data, setup_config)
-        self.cbh = get_callbackhandler(setup_config)
+        self.cbh = get_callbackhandler(setup_config, self.learn)
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
 
     def fit(self, epochs):
         self.cbh.on_train_begin(self.learn, epochs)
-        for epoch in range(epochs):
+        
+        if not self.learn.resume:
+            start = 0
+        else:
+            start = self.learn.history_raw["epochs"][-1]
+            
+        for epoch in range(start, epochs):
             self.cbh.on_epoch_begin(epoch)
             if self.learn.do_stop:
                 break

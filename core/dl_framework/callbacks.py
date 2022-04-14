@@ -20,7 +20,8 @@ class Callback():
     """parent class for all Callbacks
     implements dummy methods
     """
-    def __init__(): pass
+    def __init__(self, learn): 
+        self.learn = learn
 
     def on_train_begin(self, learn, epochs):
         self.learn = learn
@@ -98,10 +99,15 @@ class Recorder(Callback):
     # todo: set self.history_raw on epoch end, in case that Monitor is not included
     #  * using numpy arrays for summming vals is much faster than lists
 
-    def __init__(self): pass
-
-    def on_train_begin(self, learn, epochs):
+    def __init__(self, learn):
+        super().__init__(learn)
         self.learn = learn
+        if self.learn.resume:
+            _, _, self.learn.history_raw, _ = load_checkpoint(
+                self.learn.resume, self.learn.model, self.learn.opt)
+        
+    def on_train_begin(self, learn, epochs):
+        # self.learn = learn
         self.epochs = epochs
         self.batch_vals = {"train_loss": [], "valid_loss": [],
                            "train_pred": [], "valid_pred": []}
@@ -131,7 +137,7 @@ class CudaCallback(Callback):
         Callback (self): Implements alls methods
     """
 
-    def __init__(self): pass
+    def __init__(self, *args): pass
 
     def on_train_begin(self, learn, *args):
         self.learn = learn
@@ -156,8 +162,8 @@ class Monitor(Recorder):
         Recorder (_type_): _description_
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args):
+        super().__init__(*args)
         self.history = {"epochs": []}
         self.best_values = {}
 
@@ -169,9 +175,10 @@ class Monitor(Recorder):
                            "train_pred": [], "valid_pred": []}
         for mon in self.monitor:
             self.history[mon] = []
-            
-        setattr(self.learn, "history_raw", self.history)
-        
+        if not self.learn.resume:
+            setattr(self.learn, "history_raw", self.history)
+        else:
+            self.history = self.learn.history_raw
     def on_batch_end(self):
         _, batch_pred = torch.max(self.out.data, 1)
         batch_correct = (batch_pred == self.yb).sum().item() / len(self.yb)
@@ -189,11 +196,8 @@ class Monitor(Recorder):
         if self.verbose == True:
             self._print_console()
 
-        if type(self.learn.resume) is bool:
-            setattr(self.learn, "history_raw", self.history)
-        else:
-            self.history = self.learn.history_raw
-            self.learn.resume = False
+        setattr(self.learn, "history_raw", self.history)
+
 
     def valid_acc(self):
         return sum(self.batch_vals["valid_pred"]) / len(self.batch_vals["valid_pred"])
@@ -224,9 +228,14 @@ class TrackValues(Callback):
         track_best_vals: Saves best values from self.learn.history_raw
     """
 
-    def __init__(self):
+    def __init__(self, learn):
         self.track_best_vals = {}
-
+        self.learn = learn
+        if self.learn.resume:
+            _, _, _, self.track_best_vals = load_checkpoint(
+                self.learn.resume, self.learn.model, self.learn.opt)
+            
+        
     def on_epoch_end(self):
         for monitor, values in self.learn.history_raw.items():
             if ("loss" in monitor) and (self.epoch == 0):
@@ -248,8 +257,8 @@ class TrackValues(Callback):
 
 
 class EarlyStopping(TrackValues):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, learn):
+        super().__init__(learn)
         self.monitor = "train_loss"
         self.patience = 20
         self.counter = 0
@@ -275,7 +284,6 @@ class EarlyStopping(TrackValues):
                 if diff > self.delta:
                     self.counter = 0
                     self.best_val = self.track_best_vals[self.monitor][1]
-                    print("new best:", self.monitor,  self.best_val)
                 else:
                     self.counter += 1
             if self.counter == self.patience:
@@ -310,8 +318,8 @@ class Checkpoints(TrackValues):
         Functions: on_train_begin -> self.create_checkpoint_path
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args):
+        super().__init__(*args)
         self.monitor = "train_loss"
         self.history_format = "csv"
         self.delta = 1e-1
@@ -334,24 +342,27 @@ class Checkpoints(TrackValues):
         else:
             self.save_name += f"_{self.debug_timestamp}"
 
-        if not type(self.learn.resume) is bool:
-            self.learn.model, self.learn.opt, self.learn.history_raw = load_checkpoint(
-                self.learn.resume, self.learn.model, self.learn.opt)
         if "loss" in self.monitor:
             self.comp = np.less
             self.best_val = np.inf
         if "acc" in self.monitor:
             self.comp = np.greater
             self.best_val = -np.inf
+            
+        if self.learn.resume:
+            self.learn.model, self.learn.opt, self.learn.history_raw, self.track_best_vals = load_checkpoint(
+            self.learn.resume, self.learn.model, self.learn.opt)
+            self.comp, self.best_val = self.track_best_vals[self.monitor][0], self.track_best_vals[self.monitor][1]
 
     def on_epoch_begin(self, epoch):
         self.epoch = epoch
-        if self.epoch >= 0:
+        if self.epoch > 0:
             diff = np.abs(self.best_val -
                           self.track_best_vals[self.monitor][1])
 
             if self.save_model:
                 checkpoint = {
+                    "best_history": self.track_best_vals,
                     "history": self.learn.history_raw,
                     "state_dict": self.learn.model.state_dict(),
                     "optimizer": self.learn.opt.state_dict()
@@ -362,10 +373,10 @@ class Checkpoints(TrackValues):
 
                 if not self.comp(self.best_val, self.track_best_vals[self.monitor][1]):
                     if diff > self.delta:
+                        print(f"best checkpoint: {self.monitor}: {self.best_val}")
                         self.best_val = self.track_best_vals[self.monitor][1]
                         save_checkpoint(checkpoint, True, Path(
                             self.save_path / f"model_{self.save_name}"))
-                        print("new checkpoint")
 
             if self.save_history:
                 df = pd.DataFrame(self.learn.history_raw).set_index("epochs")
@@ -434,11 +445,11 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
     history = checkpoint["history"]
+    best_history = checkpoint["best_history"]
+    return model, optimizer, history, best_history
 
-    return model, optimizer, history
 
-
-def get_callbacks(setup_config):
+def get_callbacks(setup_config, learn):
     """Loading Callback classes according to setup.toml
 
     Args:
@@ -447,9 +458,9 @@ def get_callbacks(setup_config):
     Returns:
         list: returns list of all callback classes
     """
-    implemented_cbs = {"m": Monitor(),
-                       "e": EarlyStopping(),
-                       "c": Checkpoints()}
+    implemented_cbs = {"m": Monitor(learn),
+                       "e": EarlyStopping(learn),
+                       "c": Checkpoints(learn)}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
     cb_list
@@ -470,7 +481,7 @@ def get_callbacks(setup_config):
     return cbs
 
 
-def get_callbackhandler(setup_config):
+def get_callbackhandler(setup_config, learn):
     """Creates Callbackhandler with Callbacks from setup.toml
 
     Args:
@@ -484,8 +495,8 @@ def get_callbackhandler(setup_config):
         Recorder and CudaCallback are added automatically in case of no Callbacks in setup.toml
     """
     if any([c for c in setup_config.keys() if c[:2] == "c_"]):
-        cbs = [Recorder(), CudaCallback()]
-        cbs.extend(get_callbacks(setup_config))
+        cbs = [Recorder(learn), CudaCallback(learn)]
+        cbs.extend(get_callbacks(setup_config, learn))
     else:
-        cbs = [Recorder(), CudaCallback()]
+        cbs = [Recorder(learn), CudaCallback(learn)]
     return CallbackHandler(cbs)
