@@ -42,9 +42,9 @@ class Learner():
             start = self.learn.history_raw["epochs"][-1]
             
         for epoch in range(start, epochs):
-            self.cbh.on_epoch_begin(epoch)
             if self.learn.do_stop:
                 break
+            self.cbh.on_epoch_begin(epoch)
             self.all_batches(self.learn.data.train_dl)
 
             self.cbh.on_validate_begin()

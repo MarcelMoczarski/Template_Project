@@ -30,13 +30,11 @@ if __name__ == "__main__":
 
 # calc runtime
 # average runtime
-# add mechanism to safe model to gdrive. with option to resume training
-# add save best model
 # add tensorboard support
 # add telegramlogger
 # check pytest
-# best model checkpoint
 # tensorflow
 # transferlearning
 # gridsearch
 # model arch via blocks
+# test c ext for faster calc
