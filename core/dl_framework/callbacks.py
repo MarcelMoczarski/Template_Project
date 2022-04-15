@@ -1,6 +1,7 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
+from time import time
 
 import numpy as np
 import pandas as pd
@@ -118,11 +119,16 @@ class Recorder(Callback):
         self.new_best_values = {}
         self.batch_vals = {"train_loss": [], "valid_loss": [], "train_pred": [], "valid_pred": []}
         self.monitor = []
+        
+        setattr(self.learn, "train_time", 0)
+        
         if self.learn.resume:
-            self.learn.model, self.learn.opt, self.history, self.best_values = load_checkpoint(
+            self.learn.model, self.learn.opt, self.history, self.best_values, self.learn.train_time = load_checkpoint(
                 self.learn.resume, self.learn.model, self.learn.opt)
-                        
+        
     def on_train_begin(self, epochs):
+        self._starttime = time() - self.learn.train_time
+        
         self.learn.model.train()
         self.epochs = epochs
         if self.monitor == []:
@@ -175,6 +181,7 @@ class Recorder(Callback):
             self.history[mon].append(getattr(self, mon)())
         self.history["epochs"].append(int(self.epoch+1))
 
+        self.learn.train_time = time() - self._starttime
         if self.verbose == True:
             self._print_console()
 
@@ -199,14 +206,26 @@ class Recorder(Callback):
         return sum(self.batch_vals["train_loss"]) / len(self.batch_vals["train_loss"])
 
     def _print_console(self):
+              
         out_string = f""
         out_string += f"epoch: {int(self.epoch)+1}/{self.epochs}\t["
         for key, val in self.history.items():
             if key != "epochs":
                 out_string += f"{key}: {val[-1]:.4f}\t"
+        out_string += f"train_time: {self._sec_conv_str(self.learn.train_time)}\t"
         print(out_string[:-1] + "]")
 
-
+    def _sec_conv_str(self, time):
+        t = time/3600
+        hours = str(int(t))
+        minutes = str(int(t*60 % 60))
+        seconds = str(int(t*3600 % 60))
+        if len(hours) == 1: hours = "0" + hours
+        if len(minutes) == 1: minutes = "0" + minutes
+        if len(seconds) == 1: seconds = "0" + seconds
+        
+        return f"{hours}:{minutes}:{seconds}"
+        
 class EarlyStopping(Callback):
     def __init__(self, learn):
         super().__init__(learn)
@@ -283,7 +302,8 @@ class Checkpoints(Callback):
                 "best_values": self.learn.best_values,
                 "history_raw": self.learn.history_raw,
                 "state_dict": self.learn.model.state_dict(),
-                "optimizer": self.learn.opt.state_dict()
+                "optimizer": self.learn.opt.state_dict(),
+                "train_time": self.learn.train_time
             }
             save_checkpoint(checkpoint, False, Path(self.save_path / f"model_{self.save_name}"))
             
@@ -373,7 +393,8 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     optimizer.load_state_dict(checkpoint["optimizer"])
     history = checkpoint["history_raw"]
     best_history = checkpoint["best_values"]
-    return model, optimizer, history, best_history
+    resume_time = checkpoint["train_time"]                 
+    return model, optimizer, history, best_history, resume_time
 
 
 def get_callbacks(setup_config, learn):
