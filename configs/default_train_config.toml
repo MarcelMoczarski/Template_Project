@@ -53,4 +53,4 @@ detailed_name = true
 debug_timestamp = "001"
 
 [callbacks.tensorboard]
-tensorboard = true
+logdir = "./tmp_files"

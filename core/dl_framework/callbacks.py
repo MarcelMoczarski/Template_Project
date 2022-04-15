@@ -426,10 +426,21 @@ class Checkpoints(Callback):
             run_path.mkdir(parents=True, exist_ok=True)
         return run_path
 
+
 class Tensorboard(Callback):
     def __init__(self, learn):
         super().__init__(learn)
-        self.writer = SummaryWriter()
+    
+    def on_train_begin(self, epochs):
+        self.writer = SummaryWriter(log_dir=self.logdir)
+
+    def on_epoch_end(self):
+        hist = self.learn.history_raw
+        for key, val in 
+        self.writer.add_scalar("loss", hist["valid_loss"][-1], hist["epochs"][-1])
+        self.writer.add_scalar("loss", hist["train_loss"][-1], hist["epochs"][-1])
+        self.writer.add_scalar("acc", hist["valid_acc"][-1], hist["epochs"][-1])
+        
 def save_checkpoint(state, is_best, checkpoint_path):
     """save best and last pytorch model in checkpoint_path
 
@@ -471,7 +482,7 @@ def get_callbacks(setup_config, learn):
     Returns:
         list: returns list of all callback classes
     """
-    implemented_cbs = {"r": "Recorder", "e": "EarlyStopping", "c": "Checkpoints", "t": Tensorboard}
+    implemented_cbs = {"r": "Recorder", "e": "EarlyStopping", "c": "Checkpoints", "t": "Tensorboard"}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
 
