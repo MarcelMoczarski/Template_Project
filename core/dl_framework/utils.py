@@ -15,7 +15,6 @@ from plotly.subplots import make_subplots
 
 def read_config(config_file):
     setup_config = {}
-    # abr_dict = {}
     for key, value in config_file.items():
         if key == "title":
             continue
@@ -67,22 +66,22 @@ def get_specific_history(ckp_path, monitor, fileformat=["csv"], specific="best")
             if "loss" in monitor:
                 best_vals.append(tmp_df[monitor].min())
                 best_idx = best_vals.index(min(best_vals))
-        return getattr(pd, "read_" + files[best_idx].suffix[1:])(files[best_idx]), files[best_idx]
-    if specific == "all":
+        return [[getattr(pd, "read_" + files[best_idx].suffix[1:])(files[best_idx])], files[best_idx]]
+    elif specific == "all":
         df_list = []
         for idx, hist in enumerate(files):
             get_func = getattr(pd, "read_" + hist.suffix[1:])
-            tmp_df = get_func(hist, skiprows=range(1, 2))
+            tmp_df = get_func(hist)
             df_list.append(tmp_df)
-        # best_idx = best_vals.index(max(best_vals))
-        # best_hist =
-        return df_list
+        return [df_list, "all"]
+    else:
+        pass
+
     
 def plot_history(history):
     # todo: add functionality to get list of history_files and plot each file or plot all files in one
     col_pal = px.colors.sequential.Rainbow
     col_pal_iter = itertools.cycle(col_pal) 
-
     implemented_metric = ["acc", "loss"]
     plot_dict = {}
     for met in implemented_metric:
@@ -107,3 +106,8 @@ def plot_history(history):
     # learn.history.keys()[0]
     # fig.update_layout(title_text="test")
     fig.show()
+    
+def plot_history_all(history_list):
+    history, add_info = history_list[0], history_list[1]
+    for hist in history:
+        plot_history(hist)
