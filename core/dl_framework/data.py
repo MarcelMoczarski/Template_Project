@@ -1,9 +1,11 @@
 import numpy as np
 import torchvision
 from sklearn.model_selection import train_test_split
+import shutil
+from pathlib import Path
+import kaggle
 
-
-def get_dataset(source, dataset, save_path, CNN=False):
+def get_dataset(source, dataset, save_path, CNN=False, kaggle_json_path="", build_set_from_folder=False, shuffle=False):
     if source == "torchvision":
         dataset = getattr(torchvision.datasets, dataset)
         train_set = dataset(save_path, train=True, download=True)
@@ -17,6 +19,17 @@ def get_dataset(source, dataset, save_path, CNN=False):
             
         return x_train, y_train, x_test, y_test
 
+    if source == "kaggle":
+        kaggle_json_path += "/kaggle.json"
+        root_path = Path("/root/.kaggle")
+        root_path.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(kaggle_json_path, root_path/"kaggle.json")
+        kaggle.api.authenticate()
+        kaggle.api.dataset_download_files(dataset, path=save_path, unzip=True)
+        
+        return 0, 0, 0, 0
+
+        
 
 class Dataset():
     # transforms?
