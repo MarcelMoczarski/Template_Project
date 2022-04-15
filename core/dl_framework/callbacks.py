@@ -433,13 +433,22 @@ class Tensorboard(Callback):
     
     def on_train_begin(self, epochs):
         self.writer = SummaryWriter(log_dir=self.logdir)
-
+        img, _ = next(iter(self.learn.data.train_dl))   
+        
+        img = img.unsqueeze(1).to(self.learn.device)
+        self.writer.add_graph(self.learn.model.to(self.learn.device), img)
+        
     def on_epoch_end(self):
         hist = self.learn.history_raw
-        for key, val in 
-        self.writer.add_scalar("loss", hist["valid_loss"][-1], hist["epochs"][-1])
-        self.writer.add_scalar("loss", hist["train_loss"][-1], hist["epochs"][-1])
-        self.writer.add_scalar("acc", hist["valid_acc"][-1], hist["epochs"][-1])
+        
+        for key, val in hist.items():
+            epoch = hist["epochs"][-1]
+            if key != "epochs":
+                if "loss" in key:
+                    self.writer.add_scalar("loss/" + key, val[-1], epoch)
+                if "acc" in key:
+                    self.writer.add_scalar("acc/" + key, val[-1], epoch)
+                    
         
 def save_checkpoint(state, is_best, checkpoint_path):
     """save best and last pytorch model in checkpoint_path
