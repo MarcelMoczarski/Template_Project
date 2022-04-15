@@ -81,7 +81,7 @@ def get_dls(train_ds, valid_ds, bs):
 def split_data_raw(x_data, y_data, valid_split, stratify=False):
     if stratify == False:
         train_indices, valid_indices, _, _ = train_test_split(
-            range(len(x_data)), y_data, test_size=valid_split)
+            range(len(x_data)), y_data, test_size=valid_split, random_state=1)
     else:
         train_indices, valid_indices, _, _ = train_test_split(
             range(len(x_data)), y_data, test_size=valid_split, stratify=y_data)

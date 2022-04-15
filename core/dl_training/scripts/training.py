@@ -17,7 +17,7 @@ def main(config_path):
 
     train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
-    learn = Learner([train_ds, test_ds], setup_config)
+    learn = Learner(train_ds, setup_config)
 
     # learn = Learner(train_ds, setup_config)
     

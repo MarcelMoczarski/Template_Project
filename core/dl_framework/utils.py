@@ -96,11 +96,11 @@ def plot_history(history):
             fig.add_trace(go.Scatter(x=history.index, y=history[key].values, name=key, line=dict(color=new_color)), row=1, col=idx+1)
             dmin, dmax = history[key].min(), history[key].max()
             if met == "acc":
-                epoch = history[key].argmax()
+                epoch = history[key].argmax()+1
                 fig.add_trace(go.Scatter(x=[epoch], y=[dmax], name="best val", line=dict(color=new_color, width=1, dash="dash")), row=1, col=idx+1)
                 fig.add_vline(x=epoch, line_width=1, line_color=new_color, line_dash="dash", row=1, col=idx+1)
             if met == "loss":
-                epoch = history[key].argmin()
+                epoch = history[key].argmin()+1
                 fig.add_trace(go.Scatter(x=[epoch], y=[dmin], name="best val", line=dict(color=new_color, width=1, dash="dash")), row=1, col=idx+1)
                 fig.add_vline(x=epoch, line_width=1, line_color=new_color, line_dash="dash", row=1, col=idx+1)
     # learn.history.keys()[0]

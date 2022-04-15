@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytz
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 """all checkpoints should be included at the moment
 
@@ -425,7 +426,10 @@ class Checkpoints(Callback):
             run_path.mkdir(parents=True, exist_ok=True)
         return run_path
 
-
+class Tensorboard(Callback):
+    def __init__(self, learn):
+        super().__init__(learn)
+        self.writer = SummaryWriter()
 def save_checkpoint(state, is_best, checkpoint_path):
     """save best and last pytorch model in checkpoint_path
 
@@ -467,7 +471,7 @@ def get_callbacks(setup_config, learn):
     Returns:
         list: returns list of all callback classes
     """
-    implemented_cbs = {"r": "Recorder", "e": "EarlyStopping", "c": "Checkpoints"}
+    implemented_cbs = {"r": "Recorder", "e": "EarlyStopping", "c": "Checkpoints", "t": Tensorboard}
 
     cb_list = [c for c in setup_config if c[:2] == "c_"]
 
