@@ -5,7 +5,14 @@ import shutil
 from pathlib import Path
 import kaggle
 
-def get_dataset(source, dataset, save_path, CNN=False, kaggle_json_path="", build_set_from_folder=False, shuffle=False):
+def get_dataset(setup_config):
+    source, dataset = setup_config["s_source"], setup_config["s_set"]
+    save_path, kaggle_json_path = setup_config["p_tmp_data_path"], setup_config["p_kaggle_json_path"]
+    CNN = setup_config["g_CNN"]
+    build_set_from_folder = setup_config["s_build_set_from_folder"]
+    shuffle = setup_config["s_shuffle"]
+
+    
     if source == "torchvision":
         dataset = getattr(torchvision.datasets, dataset)
         train_set = dataset(save_path, train=True, download=True)
@@ -21,11 +28,12 @@ def get_dataset(source, dataset, save_path, CNN=False, kaggle_json_path="", buil
 
     if source == "kaggle":
         kaggle_json_path += "/kaggle.json"
-        root_path = Path("/root/.kaggle")
-        root_path.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(kaggle_json_path, root_path/"kaggle.json")
-        kaggle.api.authenticate()
-        kaggle.api.dataset_download_files(dataset, path=save_path, unzip=True)
+        # root_path = Path("/root/.kaggle")
+        # root_path.mkdir(parents=True, exist_ok=True)
+        # shutil.copyfile(kaggle_json_path, root_path/"kaggle.json")
+        # kaggle.api.authenticate()
+        # kaggle.api.dataset_download_files(dataset, path=save_path, unzip=True)
+        
         
         return 0, 0, 0, 0
 

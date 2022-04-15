@@ -13,13 +13,7 @@ from core.dl_framework.utils import read_config
 def main(config_path):
     setup_config = read_config(toml.load(config_path))
     
-    x_train, y_train, x_test, y_test = get_dataset(
-        setup_config["s_source"], 
-        setup_config["s_set"], 
-        setup_config["p_tmp_data_path"], 
-        CNN=True, 
-        kaggle_json_path=setup_config["p_kaggle_json_path"]
-        )
+    x_train, y_train, x_test, y_test = get_dataset(setup_config)
 
     #train_ds, test_ds = Dataset(x_train, y_train), Dataset(x_test, y_test)
 
