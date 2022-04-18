@@ -7,8 +7,8 @@ class Model_CNN(nn.Module):
         super(Model_CNN, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(
-                in_channels=1,
-                out_channels=nh,
+                in_channels=3,
+                out_channels=16,
                 kernel_size=5,
                 stride=1,
                 padding=2
@@ -43,7 +43,7 @@ class Model_CNN(nn.Module):
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(576, n_out)
+            nn.Linear(14400, n_out)
         )
 
     def forward(self, x):

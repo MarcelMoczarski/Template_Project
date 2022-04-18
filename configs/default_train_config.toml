@@ -26,6 +26,10 @@ set = "puneet6060/intel-image-classification"
 build_set_from_folder = true
 shuffle = true
 
+[source.transforms]
+Resize = [124, 124]
+ToTensor = ""
+
 [hyperparams]
 batch_size = 64
 lr = 1e-05
